@@ -1,0 +1,7 @@
+{
+  "name": "voting-backend",
+  "version": "1.0.0",
+  "dependencies": {
+    "node": "^24.12.0"
+  }
+}

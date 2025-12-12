@@ -1,0 +1,1 @@
+// sqs service placeholder
