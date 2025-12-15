@@ -34,9 +34,9 @@ jobs:
 
       - name: Build, tag, and push image
         run: |
-          docker build -t voting-backend .
-          docker tag voting-backend:latest ${{ steps.login-ecr.outputs.registry }}/voting-backend:${{ github.sha }}
-          docker push ${{ steps.login-ecr.outputs.registry }}/voting-backend:${{ github.sha }}
+          docker build -t voting-backend:latest .
+          docker tag voting-backend:latest ${{ steps.login-ecr.outputs.registry }}/voting-backend:latest
+          docker push ${{ steps.login-ecr.outputs.registry }}/voting-backend:latest
 
       - name: Update ECS service
         run: |
