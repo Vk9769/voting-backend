@@ -1,11 +1,15 @@
 import express from "express";
 import cors from "cors";
+import dotenv from "dotenv";
+import bodyParser from "body-parser";
+
+dotenv.config();
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(bodyParser.json());
 
-// HEALTH CHECK
+// HEALTH CHECK (ALB)
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok" });
 });
@@ -15,7 +19,7 @@ app.get("/", (req, res) => {
   res.json({ message: "Voting API Running" });
 });
 
-// ❌ COMMENT OUT ROUTES TEMPORARILY
+// 🚫 COMMENT ALL ROUTES FOR NOW
 // import adminRoutes from "./routes/admin.js";
 // import voterRoutes from "./routes/voter.js";
 // import authRoutes from "./routes/auth.js";
@@ -25,6 +29,7 @@ app.get("/", (req, res) => {
 // app.use("/auth", authRoutes);
 
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`API running on port ${PORT}`);
 });
