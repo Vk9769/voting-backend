@@ -1,0 +1,46 @@
+name: CI CD - Build & Deploy to ECS
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  AWS_REGION: eu-north-1
+  ECR_REPOSITORY: voting-backend
+  ECS_CLUSTER: voting-cluster
+  ECS_SERVICE: voting-service
+  CONTAINER_NAME: voting-backend
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # REQUIRED FOR OIDC
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::036702934417:role/github-actions-oidc-role
+          aws-region: eu-north-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image
+        run: |
+          docker build -t voting-backend .
+          docker tag voting-backend:latest ${{ steps.login-ecr.outputs.registry }}/voting-backend:${{ github.sha }}
+          docker push ${{ steps.login-ecr.outputs.registry }}/voting-backend:${{ github.sha }}
+
+      - name: Update ECS service
+        run: |
+          aws ecs update-service \
+            --cluster voting-cluster \
+            --service voting-service \
+            --force-new-deployment

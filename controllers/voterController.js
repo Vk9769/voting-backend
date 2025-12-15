@@ -1,1 +1,3 @@
-// voter controller placeholder
+export const getVoter = (req, res) => {
+  return res.json({ voter: "dummy voter" });
+};
