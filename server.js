@@ -19,14 +19,7 @@ app.get("/", (req, res) => {
   res.json({ message: "Voting API Running" });
 });
 
-// 🚫 COMMENT ALL ROUTES FOR NOW
-// import adminRoutes from "./routes/admin.js";
-// import voterRoutes from "./routes/voter.js";
-// import authRoutes from "./routes/auth.js";
-
-// app.use("/admin", adminRoutes);
-// app.use("/voter", voterRoutes);
-// app.use("/auth", authRoutes);
+// 🚫 NO ROUTES, NO SERVICES, NO REDIS, NO DB
 
 const PORT = process.env.PORT || 3000;
 

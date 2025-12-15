@@ -7,6 +7,9 @@ export const redis = createClient({
   }
 });
 
-redis.on("error", err => console.log("Redis Error:", err));
+redis.on("error", (err) => {
+  console.log("Redis error (ignored):", err.message);
+});
 
-await redis.connect();
+// ❌ DO NOT AUTO-CONNECT ON STARTUP
+// await redis.connect();
