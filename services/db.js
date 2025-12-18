@@ -9,3 +9,7 @@ export const pool = new Pool({
   port: 5432,
   ssl: { rejectUnauthorized: false }
 });
+
+pool.query("SELECT 1")
+  .then(() => console.log("✅ PostgreSQL connected"))
+  .catch(err => console.error("❌ PostgreSQL connection failed", err.message));
