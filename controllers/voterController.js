@@ -2,17 +2,17 @@ import { pool } from "../services/db.js";
 
 export const getVoterProfile = async (req, res) => {
   try {
-    const userId = req.user.id; // from JWT
+    const userId = req.user.id;
 
     const result = await pool.query(
       `
-      SELECT
+      SELECT 
+        id,
         voter_id,
         first_name,
         last_name,
         email,
-        phone,
-        address
+        phone
       FROM users
       WHERE id = $1
       `,

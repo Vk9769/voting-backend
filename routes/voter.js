@@ -5,7 +5,6 @@ import { allowRoles } from "../middleware/roleCheck.js";
 
 const router = express.Router();
 
-// 🔐 Voter profile (logged-in voter only)
 router.get(
   "/profile",
   authenticate,
