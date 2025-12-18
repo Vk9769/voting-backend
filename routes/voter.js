@@ -1,7 +1,7 @@
 import express from "express";
-import { getVoterProfile } from "../controllers/voterController.js";
 import { authenticate } from "../middleware/auth.js";
 import { allowRoles } from "../middleware/roleCheck.js";
+import { getVoterProfile } from "../controllers/voterController.js";
 
 const router = express.Router();
 
