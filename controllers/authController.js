@@ -1,29 +1,67 @@
-import { generateToken } from "../utils/jwt.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { pool } from "../services/db.js";
 
-// DEMO LOGIN (replace with DB later)
 export const login = async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    const { identifier, password } = req.body;
 
-  // TEMP DEMO USERS
-  const users = {
-    "voter@gmail.com": { id: 1, role: "voter", password: "123456" },
-    "agent@gmail.com": { id: 2, role: "agent", password: "123456" },
-    "admin@gmail.com": { id: 3, role: "admin", password: "123456" }
-  };
+    if (!identifier || !password) {
+      return res.status(400).json({ message: "Missing credentials" });
+    }
 
-  const user = users[email];
-  if (!user || user.password !== password) {
-    return res.status(401).json({ message: "Invalid credentials" });
+    // Find user by voter_id OR email OR phone
+    const result = await pool.query(
+      `
+      SELECT u.*, r.name AS role
+      FROM users u
+      JOIN roles r ON r.id = u.role_id
+      WHERE u.voter_id = $1
+         OR u.email = $1
+         OR u.phone = $1
+      LIMIT 1
+      `,
+      [identifier]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const user = result.rows[0];
+
+    if (!user.is_active) {
+      return res.status(403).json({ message: "Account disabled" });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    // JWT payload
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        role: user.role,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES || "7d" }
+    );
+
+    return res.json({
+      token,
+      user: {
+        id: user.id,
+        role: user.role,
+        voter_id: user.voter_id,
+        email: user.email,
+        phone: user.phone
+      }
+    });
+
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ message: "Server error" });
   }
-
-  const token = generateToken({
-    id: user.id,
-    role: user.role,
-    email
-  });
-
-  return res.json({
-    token,
-    role: user.role
-  });
 };
