@@ -12,7 +12,7 @@ export const login = async (req, res) => {
 
     const result = await pool.query(
       `
-      SELECT 
+      SELECT
         u.id,
         u.voter_id,
         u.email,
@@ -60,9 +60,8 @@ export const login = async (req, res) => {
         phone: user.phone
       }
     });
-
   } catch (err) {
     console.error("Login error:", err);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
 };
