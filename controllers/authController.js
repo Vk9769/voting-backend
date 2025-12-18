@@ -10,12 +10,18 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "Missing credentials" });
     }
 
-    // Find user by voter_id OR email OR phone
     const result = await pool.query(
       `
-      SELECT u.*, r.name AS role
+      SELECT 
+        u.id,
+        u.voter_id,
+        u.email,
+        u.phone,
+        u.password,
+        r.name AS role
       FROM users u
-      JOIN roles r ON r.id = u.role_id
+      JOIN user_roles ur ON ur.user_id = u.id
+      JOIN roles r ON r.id = ur.role_id
       WHERE u.voter_id = $1
          OR u.email = $1
          OR u.phone = $1
@@ -30,20 +36,15 @@ export const login = async (req, res) => {
 
     const user = result.rows[0];
 
-    if (!user.is_active) {
-      return res.status(403).json({ message: "Account disabled" });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password_hash);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // JWT payload
     const token = jwt.sign(
       {
         userId: user.id,
-        role: user.role,
+        role: user.role
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES || "7d" }
