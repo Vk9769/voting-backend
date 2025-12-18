@@ -3,6 +3,10 @@ import cors from "cors";
 import dotenv from "dotenv";
 import bodyParser from "body-parser";
 
+
+import authRoutes from "./routes/auth.js";
+
+
 dotenv.config();
 
 const app = express();
@@ -19,7 +23,7 @@ app.get("/", (req, res) => {
   res.json({ message: "Voting API Running" });
 });
 
-// 🚫 NO ROUTES, NO SERVICES, NO REDIS, NO DB
+app.use("/auth", authRoutes);
 
 const PORT = process.env.PORT || 3000;
 
