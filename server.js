@@ -5,7 +5,7 @@ import bodyParser from "body-parser";
 
 
 import authRoutes from "./routes/auth.js";
-
+import voterRoutes from "./routes/voter.js";
 
 dotenv.config();
 
@@ -23,7 +23,11 @@ app.get("/", (req, res) => {
   res.json({ message: "Voting API Running" });
 });
 
+//AUTH ROOT
 app.use("/auth", authRoutes);
+
+//VOTER ROOT
+app.use("/voter", voterRoutes);
 
 const PORT = process.env.PORT || 3000;
 

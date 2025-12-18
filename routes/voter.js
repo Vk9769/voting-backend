@@ -1,16 +1,16 @@
 import express from "express";
+import { getVoterProfile } from "../controllers/voterController.js";
 import { authenticate } from "../middleware/auth.js";
 import { allowRoles } from "../middleware/roleCheck.js";
 
 const router = express.Router();
 
+// 🔐 Voter profile (logged-in voter only)
 router.get(
-  "/home",
+  "/profile",
   authenticate,
-  allowRoles("voter"),
-  (req, res) => {
-    res.json({ message: "Voter dashboard", user: req.user });
-  }
+  allowRoles("VOTER"),
+  getVoterProfile
 );
 
 export default router;
