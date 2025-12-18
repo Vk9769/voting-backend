@@ -4,15 +4,15 @@ import { pool } from "../services/db.js";
 
 export const login = async (req, res) => {
   try {
-    const { identifier, password } = req.body;
+    const { identifier, password, app } = req.body;
 
-    if (!identifier || !password) {
+    if (!identifier || !password || !app) {
       return res.status(400).json({ message: "Missing credentials" });
     }
 
     const result = await pool.query(
       `
-      SELECT
+      SELECT 
         u.id,
         u.voter_id,
         u.email,
@@ -41,10 +41,26 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
+    // 🔐 APP ↔ ROLE VALIDATION
+    const appRoleMap = {
+      VOTER: ["VOTER"],
+      AGENT: ["AGENT", "SUPER_AGENT"],
+      BLO: ["BLO"],
+      ADMIN: ["ADMIN", "SUPER_ADMIN", "MASTER_ADMIN"],
+      OBSERVER: ["OBSERVER"],
+      CANDIDATE: ["CANDIDATE"]
+    };
+
+    if (!appRoleMap[app] || !appRoleMap[app].includes(user.role)) {
+      return res.status(403).json({
+        message: "Invalid credentials for this app"
+      });
+    }
+
     const token = jwt.sign(
       {
         userId: user.id,
-        role: user.role
+        role: user.role,
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES || "7d" }
@@ -60,8 +76,9 @@ export const login = async (req, res) => {
         phone: user.phone
       }
     });
+
   } catch (err) {
     console.error("Login error:", err);
-    return res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error" });
   }
 };
