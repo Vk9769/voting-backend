@@ -53,7 +53,7 @@ export const login = async (req, res) => {
 
     if (!appRoleMap[app] || !appRoleMap[app].includes(user.role)) {
       return res.status(403).json({
-        message: "Invalid credentials for this app"
+        message: "Invalid credentials"
       });
     }
 
