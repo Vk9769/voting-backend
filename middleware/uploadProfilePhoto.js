@@ -8,22 +8,25 @@ export const uploadProfilePhoto = multer({
   storage: multerS3({
     s3,
     bucket: BUCKET,
-    acl: "private",
+    acl: "public-read",
     contentType: multerS3.AUTO_CONTENT_TYPE,
     key: (req, file, cb) => {
       const userId = req.user.userId;
       const ext = file.originalname.split(".").pop();
-
       cb(null, `profile-photos/voter/${userId}.${ext}`);
     }
   }),
   limits: {
-    fileSize: 2 * 1024 * 1024 // 2 MB
+    fileSize: 2 * 1024 * 1024
   },
   fileFilter: (req, file, cb) => {
-    if (!file.mimetype.startsWith("image/")) {
-      return cb(new Error("Only image files allowed"));
+    if (
+      file.mimetype.startsWith("image/") ||
+      file.originalname.match(/\.(jpg|jpeg|png|webp)$/i)
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files allowed"));
     }
-    cb(null, true);
   }
 });
