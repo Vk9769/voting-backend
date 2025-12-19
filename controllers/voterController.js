@@ -1,4 +1,5 @@
 import { pool } from "../services/db.js";
+import { getSignedImageUrl } from "../services/s3.js";
 
 /* =========================
    GET VOTER PROFILE
@@ -40,6 +41,12 @@ export const getVoterProfile = async (req, res) => {
       [userId]
     );
 
+    if (result.rows[0].profile_photo) {
+      const key = result.rows[0].profile_photo.split(".amazonaws.com/")[1];
+      result.rows[0].profile_photo =
+        await getSignedImageUrl(key);
+    }
+    
     if (result.rows.length === 0) {
       return res.status(404).json({ message: "Voter not found" });
     }
