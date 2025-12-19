@@ -40,18 +40,19 @@ export const getVoterProfile = async (req, res) => {
       `,
       [userId]
     );
-
-    if (result.rows[0].profile_photo) {
-      const key = result.rows[0].profile_photo.split(".amazonaws.com/")[1];
-      result.rows[0].profile_photo =
-        await getSignedImageUrl(key);
-    }
     
     if (result.rows.length === 0) {
       return res.status(404).json({ message: "Voter not found" });
     }
+    const row = result.rows[0];
 
-    res.json(result.rows[0]);
+    // ✅ Convert S3 private URL → signed URL
+    if (row.profile_photo) {
+      const key = row.profile_photo.split(".amazonaws.com/")[1];
+      row.profile_photo = getSignedImageUrl(key);
+    }
+
+    res.json(row);
   } catch (err) {
     console.error("Voter profile error:", err);
     res.status(500).json({ message: "Server error" });
