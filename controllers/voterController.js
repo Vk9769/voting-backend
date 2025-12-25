@@ -21,8 +21,10 @@ export const getVoterProfile = async (req, res) => {
         u.gov_id_type,
         u.gov_id_no,
         u.profile_photo,
+
         r.name AS role,
 
+        b.id   AS booth_id,
         b.name AS booth_name,
         b.address AS booth_address,
 
@@ -32,15 +34,18 @@ export const getVoterProfile = async (req, res) => {
       JOIN user_roles ur ON ur.user_id = u.id
       JOIN roles r ON r.id = ur.role_id
 
-      LEFT JOIN election_voters ev ON ev.voter_id = u.id
-      LEFT JOIN booths b ON b.id = ev.booth_id
-      LEFT JOIN marked_voters mv ON mv.voter_id = u.id
+      LEFT JOIN booths b 
+        ON b.id = u.permanent_booth_id   -- ✅ permanent booth
+
+      LEFT JOIN marked_voters mv 
+        ON mv.voter_id = u.id
 
       WHERE u.id = $1
       `,
       [userId]
     );
-    
+
+
     if (result.rows.length === 0) {
       return res.status(404).json({ message: "Voter not found" });
     }

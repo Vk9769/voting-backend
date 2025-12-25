@@ -10,7 +10,7 @@ import { uploadProfilePhoto } from "../middleware/uploadProfilePhoto.js";
 
 const router = express.Router();
 
-router.get(
+router.get7
   "/profile",
   authenticate,
   allowRoles("VOTER"),
