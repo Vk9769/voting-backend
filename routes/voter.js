@@ -10,13 +10,19 @@ import { uploadProfilePhoto } from "../middleware/uploadProfilePhoto.js";
 
 const router = express.Router();
 
-router.get7
+/* =========================
+   GET VOTER PROFILE
+========================= */
+router.get(
   "/profile",
   authenticate,
   allowRoles("VOTER"),
   getVoterProfile
 );
 
+/* =========================
+   UPDATE VOTER PROFILE
+========================= */
 router.put(
   "/profile",
   authenticate,
@@ -24,6 +30,9 @@ router.put(
   updateVoterProfile
 );
 
+/* =========================
+   UPLOAD VOTER PHOTO
+========================= */
 router.post(
   "/profile/photo",
   authenticate,
