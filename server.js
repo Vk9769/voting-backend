@@ -6,6 +6,7 @@ import bodyParser from "body-parser";
 
 import authRoutes from "./routes/auth.js";
 import voterRoutes from "./routes/voter.js";
+import notificationRoutes from "./routes/notification.js";
 
 dotenv.config();
 
@@ -28,6 +29,10 @@ app.use("/auth", authRoutes);
 
 //VOTER ROOT
 app.use("/voter", voterRoutes);
+
+//NOTIFICATIONS ROOT
+app.use("/notifications", notificationRoutes);
+
 
 const PORT = process.env.PORT || 3000;
 

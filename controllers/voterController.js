@@ -1,5 +1,6 @@
 import { pool } from "../services/db.js";
 import { getSignedImageUrl } from "../services/s3.js";
+import { createNotification } from "./notificationController.js";
 
 /* =========================
    GET VOTER PROFILE
@@ -54,7 +55,7 @@ export const getVoterProfile = async (req, res) => {
     // ✅ Convert S3 private URL → signed URL
     if (row.profile_photo) {
       const key = row.profile_photo.split(".amazonaws.com/")[1];
-      row.profile_photo = getSignedImageUrl(key);
+      row.profile_photo = await getSignedImageUrl(key);
     }
 
     res.json(row);
@@ -109,6 +110,14 @@ export const updateVoterProfile = async (req, res) => {
       ]
     );
 
+    // ✅ CREATE NOTIFICATION
+    await createNotification(
+      userId,
+      "Profile Updated",
+      "Your voter profile details were updated successfully.",
+      "PROFILE"
+    );
+
     res.json({ message: "Profile updated successfully" });
   } catch (err) {
     console.error("Update voter error:", err);
@@ -133,6 +142,14 @@ export const uploadVoterPhoto = async (req, res) => {
       WHERE id = $2
       `,
       [photoUrl, userId]
+    );
+
+    // ✅ CREATE NOTIFICATION
+    await createNotification(
+      userId,
+      "Profile Photo Updated",
+      "Your voter profile Photo were updated successfully.",
+      "PROFILE"
     );
 
     res.json({
