@@ -6,7 +6,7 @@ const BUCKET = "voting-app-profile-photos";
 
 export const uploadProfilePhoto = multer({
   storage: multerS3({
-    s3,
+    s3, // ✅ v2 client
     bucket: BUCKET,
     contentType: multerS3.AUTO_CONTENT_TYPE,
     key: (req, file, cb) => {
