@@ -54,8 +54,19 @@ export const getVoterProfile = async (req, res) => {
 
     // ✅ Convert S3 private URL → signed URL
     if (row.profile_photo) {
-      const key = row.profile_photo.split(".amazonaws.com/")[1];
-      row.profile_photo = await getSignedImageUrl(key);
+      // ✅ Convert S3 private URL → signed URL (SAFE)
+      if (
+        row.profile_photo &&
+        row.profile_photo.includes(".amazonaws.com/") &&
+        !row.profile_photo.includes("X-Amz-Signature")
+      ) {
+        const key = row.profile_photo.split(".amazonaws.com/")[1];
+
+        if (key && key.length > 0) {
+          row.profile_photo = await getSignedImageUrl(key);
+        }
+      }
+
     }
 
     res.json(row);
