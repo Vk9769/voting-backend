@@ -6,8 +6,13 @@ AWS.config.update({
 
 export const s3 = new AWS.S3();
 
-export const getSignedImageUrl = (key) => {
-  return s3.getSignedUrl("getObject", {
+/* =========================
+   SIGNED URL (V2)
+========================= */
+export const getSignedImageUrl = async (key) => {
+  if (!key || typeof key !== "string") return null;
+
+  return s3.getSignedUrlPromise("getObject", {
     Bucket: "voting-app-profile-photos",
     Key: key,
     Expires: 300 // 5 minutes

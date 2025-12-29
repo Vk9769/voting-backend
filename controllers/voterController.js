@@ -53,9 +53,20 @@ export const getVoterProfile = async (req, res) => {
     const row = result.rows[0];
 
     // ✅ Convert S3 private URL → signed URL
-    if (row.profile_photo) {
-      const key = row.profile_photo.split(".amazonaws.com/")[1];
-      row.profile_photo = getSignedImageUrl(key);
+    // ✅ SAFE S3 SIGNED URL GENERATION
+    if (
+      row.profile_photo &&
+      typeof row.profile_photo === "string" &&
+      row.profile_photo.includes(".amazonaws.com/") &&
+      !row.profile_photo.includes("X-Amz-Signature")
+    ) {
+      const parts = row.profile_photo.split(".amazonaws.com/");
+
+      if (parts.length === 2 && parts[1] && parts[1].length > 1) {
+        const key = parts[1].replace(/^\/+/, ""); // remove leading /
+
+        row.profile_photo = await getSignedImageUrl(key);
+      }
     }
 
     res.json(row);
