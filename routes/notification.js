@@ -15,4 +15,11 @@ router.patch("/:id/read", authenticate, allowRoles("VOTER"), markAsRead);
 
 router.delete("/", authenticate, allowRoles("VOTER"), deleteNotifications);
 
+router.get(
+  "/unread-count",
+  authenticate,
+  getUnreadCount
+);
+
+
 export default router;

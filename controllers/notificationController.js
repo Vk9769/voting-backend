@@ -78,3 +78,27 @@ export const deleteNotifications = async (req, res) => {
 
   res.json({ message: "Deleted" });
 };
+
+/* =========================
+   UNREAD NOTIFICATIONS COUNTS
+========================= */
+
+export const getUnreadCount = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const result = await pool.query(
+      `
+      SELECT COUNT(*)::int AS count
+      FROM notifications
+      WHERE user_id = $1 AND is_read = false
+      `,
+      [userId]
+    );
+
+    res.json({ unread: result.rows[0].count });
+  } catch (err) {
+    console.error("Unread count error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
