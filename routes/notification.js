@@ -5,7 +5,8 @@ import {
   getNotifications,
   markAsRead,
   deleteNotifications,
-  getUnreadCount   
+  getUnreadCount,
+  saveFcmToken   
 } from "../controllers/notificationController.js";
 
 const router = express.Router();
@@ -22,5 +23,6 @@ router.get(
   getUnreadCount
 );
 
+router.post("/save-fcm-token", authenticate, saveFcmToken);
 
 export default router;

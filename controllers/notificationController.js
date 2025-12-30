@@ -1,4 +1,5 @@
 import { pool } from "../services/db.js";
+import { sendPush } from "../services/fcm.js";
 
 /* =========================
    CREATE NOTIFICATION
@@ -7,8 +8,9 @@ export const createNotification = async (
   userId,
   title,
   message,
-  type = "GENERAL"
+  type
 ) => {
+  // 1️⃣ Save in DB
   await pool.query(
     `
     INSERT INTO notifications (user_id, title, message, type)
@@ -16,6 +18,17 @@ export const createNotification = async (
     `,
     [userId, title, message, type]
   );
+
+  // 2️⃣ Get FCM tokens
+  const { rows } = await pool.query(
+    `SELECT token FROM fcm_tokens WHERE user_id = $1`,
+    [userId]
+  );
+
+  const tokens = rows.map(r => r.token);
+
+  // 3️⃣ Send push
+  await sendPush(tokens, title, message);
 };
 
 /* =========================
@@ -101,4 +114,23 @@ export const getUnreadCount = async (req, res) => {
     console.error("Unread count error:", err);
     res.status(500).json({ message: "Server error" });
   }
+};
+
+/* =========================
+  SAVE FCM TOKEN
+========================= */
+export const saveFcmToken = async (req, res) => {
+  const userId = req.user.userId;
+  const { token, platform } = req.body;
+
+  await pool.query(
+    `
+    INSERT INTO fcm_tokens (user_id, token, platform)
+    VALUES ($1, $2, $3)
+    ON CONFLICT (user_id, token) DO NOTHING
+    `,
+    [userId, token, platform]
+  );
+
+  res.json({ message: "FCM token saved" });
 };
