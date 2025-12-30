@@ -4,7 +4,8 @@ import { allowRoles } from "../middleware/roleCheck.js";
 import {
   getNotifications,
   markAsRead,
-  deleteNotifications
+  deleteNotifications,
+  getUnreadCount   
 } from "../controllers/notificationController.js";
 
 const router = express.Router();
