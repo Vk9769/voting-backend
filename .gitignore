@@ -2,3 +2,4 @@ node_modules/
 .env
 hashPassword.js
 firebase/voting-app-b1555-firebase-adminsdk-fbsvc-c7db0ae9af.json
+bastion-key.pem
