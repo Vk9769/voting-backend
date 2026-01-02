@@ -3,7 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import bodyParser from "body-parser";
 
-
+import masterAdminRoutes from "./routes/masteradmin.js";
 import authRoutes from "./routes/auth.js";
 import voterRoutes from "./routes/voter.js";
 import notificationRoutes from "./routes/notification.js";
@@ -26,6 +26,9 @@ app.get("/", (req, res) => {
 
 //AUTH ROOT
 app.use("/auth", authRoutes);
+
+//MASTER ADMIN ROOT
+app.use("/masteradmin", masterAdminRoutes);
 
 //VOTER ROOT
 app.use("/voter", voterRoutes);
