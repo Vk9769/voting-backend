@@ -5,7 +5,7 @@ import { getAllBoothsHierarchy,
   getAdminProfile,
   updateAdminProfile,
   uploadAdminPhoto, } from "../controllers/masterAdminController.js";
-import { uploadAdminProfilePhoto } from "../middleware/uploadAdminProfilePhoto.js";
+import { uploadProfilePhoto } from "../middleware/uploadProfilePhoto.js";
 
 
 const router = express.Router();
@@ -28,7 +28,7 @@ router.post(
   "/profile/photo",
   authenticate,
   allowRoles("MASTER_ADMIN"),
-  uploadAdminProfilePhoto.single("photo"),
+  uploadProfilePhoto.single("photo"),
   uploadAdminPhoto
 );
 
