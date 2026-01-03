@@ -10,25 +10,30 @@ export const createNotification = async (
   message,
   type
 ) => {
-  // 1️⃣ Save in DB
-  await pool.query(
-    `
-    INSERT INTO notifications (user_id, title, message, type)
-    VALUES ($1, $2, $3, $4)
-    `,
-    [userId, title, message, type]
-  );
+  try {
+    // 1️⃣ Always save to DB
+    await pool.query(
+      `
+      INSERT INTO notifications (user_id, title, message, type)
+      VALUES ($1, $2, $3, $4)
+      `,
+      [userId, title, message, type]
+    );
 
-  // 2️⃣ Get FCM tokens
-  const { rows } = await pool.query(
-    `SELECT token FROM fcm_tokens WHERE user_id = $1`,
-    [userId]
-  );
+    // 2️⃣ Fetch FCM tokens
+    const { rows } = await pool.query(
+      `SELECT token FROM fcm_tokens WHERE user_id = $1`,
+      [userId]
+    );
 
-  const tokens = rows.map(r => r.token);
+    const tokens = rows.map(r => r.token);
 
-  // 3️⃣ Send push
-  await sendPush(tokens, title, message);
+    // 3️⃣ Send push (DO NOT await)
+    sendPush(tokens, title, message);
+
+  } catch (err) {
+    console.error("⚠️ Notification error:", err.message);
+  }
 };
 
 /* =========================

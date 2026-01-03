@@ -9,50 +9,55 @@ const client = new SecretsManagerClient({
 });
 
 let firebaseInitialized = false;
+let firebaseDisabled = false;
 
 async function initFirebase() {
-  if (firebaseInitialized) return;
+  if (firebaseInitialized || firebaseDisabled) return;
 
   const secretArn = process.env.FIREBASE_SERVICE_ACCOUNT;
 
   if (!secretArn) {
-    throw new Error("FIREBASE_SERVICE_ACCOUNT env variable not set");
+    console.warn("⚠️ FCM disabled: FIREBASE_SERVICE_ACCOUNT not set");
+    firebaseDisabled = true;
+    return;
   }
 
-  // ✅ Fetch secret value from AWS Secrets Manager
-  const response = await client.send(
-    new GetSecretValueCommand({
-      SecretId: secretArn,
-    })
-  );
+  try {
+    const response = await client.send(
+      new GetSecretValueCommand({ SecretId: secretArn })
+    );
 
-  const serviceAccount = JSON.parse(response.SecretString);
+    const serviceAccount = JSON.parse(response.SecretString);
 
-  // ✅ Validate required fields (prevents silent crash)
-  if (!serviceAccount.project_id) {
-    throw new Error("Firebase service account missing project_id");
+    if (!serviceAccount.project_id) {
+      throw new Error("Missing project_id");
+    }
+
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+
+    firebaseInitialized = true;
+    console.log("✅ Firebase Admin initialized");
+  } catch (err) {
+    console.error("❌ Firebase init failed:", err.message);
+    firebaseDisabled = true; // disable forever for this container
   }
-
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
-
-  firebaseInitialized = true;
-  console.log("✅ Firebase Admin initialized");
 }
 
-// ✅ NAMED EXPORT (matches your controller import)
 export async function sendPush(tokens, title, body) {
-  if (!Array.isArray(tokens) || tokens.length === 0) return;
+  try {
+    await initFirebase();
 
-  await initFirebase();
+    if (!firebaseInitialized) return;
+    if (!Array.isArray(tokens) || tokens.length === 0) return;
 
-  await admin.messaging().sendEachForMulticast({
-    tokens,
-    notification: {
-      title,
-      body,
-    },
-    android: { priority: "high" },
-  });
+    await admin.messaging().sendEachForMulticast({
+      tokens,
+      notification: { title, body },
+      android: { priority: "high" },
+    });
+  } catch (err) {
+    console.error("⚠️ Push failed (ignored):", err.message);
+  }
 }
