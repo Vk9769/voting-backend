@@ -172,6 +172,7 @@ export const createElection = async (req, res) => {
   try {
     const {
       election_category,
+      election_type,
       election_name,
       election_code,
       notification_date,
@@ -191,6 +192,7 @@ export const createElection = async (req, res) => {
       `
       INSERT INTO elections (
         election_category,
+        election_type,
         election_name,
         election_code,
         notification_date,
@@ -206,12 +208,13 @@ export const createElection = async (req, res) => {
         created_by
       )
       VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'upcoming',$13
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'upcoming',$14
       )
       RETURNING *
       `,
       [
         election_category,
+        election_type,
         election_name,
         election_code,
         notification_date,
@@ -252,6 +255,7 @@ export const updateElection = async (req, res) => {
 
     const {
       election_category,
+      election_type,
       election_name,
       notification_date,
       poll_date,
@@ -269,20 +273,22 @@ export const updateElection = async (req, res) => {
       UPDATE elections
       SET
         election_category = $1,
-        election_name = $2,
-        notification_date = $3,
-        poll_date = $4,
-        counting_date = $5,
-        result_date = $6,
-        total_seats = $7,
-        total_voters = $8,
-        state = $9,
-        district = $10,
-        description = $11
-      WHERE id = $12
+        election_type = $2,
+        election_name = $3,
+        notification_date = $4,
+        poll_date = $5,
+        counting_date = $6,
+        result_date = $7,
+        total_seats = $8,
+        total_voters = $9,
+        state = $10,
+        district = $11,
+        description = $12
+      WHERE id = $13
       `,
       [
         election_category,
+        election_type,
         election_name,
         notification_date,
         poll_date,
