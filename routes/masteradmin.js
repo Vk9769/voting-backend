@@ -6,6 +6,14 @@ import { getAllBoothsHierarchy,
   updateAdminProfile,
   uploadAdminPhoto, } from "../controllers/masterAdminController.js";
 import { uploadProfilePhoto } from "../middleware/uploadProfilePhoto.js";
+import {
+  createElection,
+  updateElection,
+  getAllElections,
+  getElectionById,
+  changeElectionStatus,
+  deleteElection
+} from "../controllers/masterAdminController.js";
 
 
 const router = express.Router();
@@ -37,6 +45,67 @@ router.get(
   authenticate,
   allowRoles("MASTER_ADMIN"),
   getAllBoothsHierarchy
+);
+
+
+/* =========================
+   CREATE ELECTION
+========================= */
+router.post(
+  "/elections",
+  authenticate,
+  allowRoles("MASTER_ADMIN", "SUPER_ADMIN"),
+  createElection
+);
+
+/* =========================
+   UPDATE ELECTION
+========================= */
+router.put(
+  "/elections/:id",
+  authenticate,
+  allowRoles("MASTER_ADMIN", "SUPER_ADMIN"),
+  updateElection
+);
+
+/* =========================
+   GET ALL ELECTIONS
+========================= */
+router.get(
+  "/elections",
+  authenticate,
+  allowRoles("MASTER_ADMIN", "SUPER_ADMIN"),
+  getAllElections
+);
+
+/* =========================
+   GET SINGLE ELECTION
+========================= */
+router.get(
+  "/elections/:id",
+  authenticate,
+  allowRoles("MASTER_ADMIN", "SUPER_ADMIN"),
+  getElectionById
+);
+
+/* =========================
+   CHANGE STATUS
+========================= */
+router.patch(
+  "/elections/:id/status",
+  authenticate,
+  allowRoles("MASTER_ADMIN", "SUPER_ADMIN"),
+  changeElectionStatus
+);
+
+/* =========================
+   DELETE ELECTION
+========================= */
+router.delete(
+  "/elections/:id",
+  authenticate,
+  allowRoles("MASTER_ADMIN"),
+  deleteElection
 );
 
 export default router;

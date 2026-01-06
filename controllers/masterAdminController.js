@@ -163,3 +163,234 @@ export const getAllBoothsHierarchy = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+
+/* =========================
+   CREATE ELECTION
+========================= */
+export const createElection = async (req, res) => {
+  try {
+    const {
+      election_category,
+      election_name,
+      election_code,
+      notification_date,
+      poll_date,
+      counting_date,
+      result_date,
+      total_seats,
+      total_voters,
+      state,
+      district,
+      description
+    } = req.body;
+
+    const createdBy = req.user.userId;
+
+    const result = await pool.query(
+      `
+      INSERT INTO elections (
+        election_category,
+        election_name,
+        election_code,
+        notification_date,
+        poll_date,
+        counting_date,
+        result_date,
+        total_seats,
+        total_voters,
+        state,
+        district,
+        description,
+        status,
+        created_by
+      )
+      VALUES (
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'upcoming',$13
+      )
+      RETURNING *
+      `,
+      [
+        election_category,
+        election_name,
+        election_code,
+        notification_date,
+        poll_date,
+        counting_date,
+        result_date,
+        total_seats,
+        total_voters,
+        state,
+        district,
+        description,
+        createdBy
+      ]
+    );
+
+    res.status(201).json({
+      message: "Election created successfully",
+      election: result.rows[0]
+    });
+
+  } catch (err) {
+    console.error("Create election error:", err);
+
+    if (err.code === "23505") {
+      return res.status(409).json({ message: "Election code already exists" });
+    }
+
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/* =========================
+   UPDATE ELECTION
+========================= */
+export const updateElection = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const {
+      election_category,
+      election_name,
+      notification_date,
+      poll_date,
+      counting_date,
+      result_date,
+      total_seats,
+      total_voters,
+      state,
+      district,
+      description
+    } = req.body;
+
+    await pool.query(
+      `
+      UPDATE elections
+      SET
+        election_category = $1,
+        election_name = $2,
+        notification_date = $3,
+        poll_date = $4,
+        counting_date = $5,
+        result_date = $6,
+        total_seats = $7,
+        total_voters = $8,
+        state = $9,
+        district = $10,
+        description = $11
+      WHERE id = $12
+      `,
+      [
+        election_category,
+        election_name,
+        notification_date,
+        poll_date,
+        counting_date,
+        result_date,
+        total_seats,
+        total_voters,
+        state,
+        district,
+        description,
+        id
+      ]
+    );
+
+    res.json({ message: "Election updated successfully" });
+
+  } catch (err) {
+    console.error("Update election error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/* =========================
+   GET ALL ELECTIONS
+========================= */
+export const getAllElections = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `
+      SELECT
+        e.*,
+        u.email AS created_by_email
+      FROM elections e
+      LEFT JOIN users u ON u.id = e.created_by
+      ORDER BY e.created_at DESC
+      `
+    );
+
+    res.json(result.rows);
+
+  } catch (err) {
+    console.error("Fetch elections error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/* =========================
+   GET SINGLE ELECTION
+========================= */
+export const getElectionById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      `SELECT * FROM elections WHERE id = $1`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Election not found" });
+    }
+
+    res.json(result.rows[0]);
+
+  } catch (err) {
+    console.error("Fetch election error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/* =========================
+   CHANGE STATUS
+========================= */
+export const changeElectionStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    await pool.query(
+      `
+      UPDATE elections
+      SET status = $1
+      WHERE id = $2
+      `,
+      [status, id]
+    );
+
+    res.json({ message: "Election status updated" });
+
+  } catch (err) {
+    console.error("Status update error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/* =========================
+   DELETE ELECTION
+========================= */
+export const deleteElection = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await pool.query(`DELETE FROM elections WHERE id = $1`, [id]);
+
+    res.json({ message: "Election deleted successfully" });
+
+  } catch (err) {
+    console.error("Delete election error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
