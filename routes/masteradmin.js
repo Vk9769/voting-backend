@@ -15,6 +15,11 @@ import {
   deleteElection
 } from "../controllers/masterAdminController.js";
 
+import {
+  getVoterParts,
+  getVotersByPart,
+} from "../controllers/masterAdminVoterController.js";
+
 
 const router = express.Router();
 
@@ -106,6 +111,24 @@ router.delete(
   authenticate,
   allowRoles("MASTER_ADMIN"),
   deleteElection
+);
+
+/* =========================
+   MASTER ADMIN – VOTERS
+========================= */
+
+router.get(
+  "/voter-parts",
+  authenticate,
+  authorizeRoles("MASTER_ADMIN"),
+  getVoterParts
+);
+
+router.get(
+  "/voters",
+  authenticate,
+  authorizeRoles("MASTER_ADMIN"),
+  getVotersByPart
 );
 
 export default router;

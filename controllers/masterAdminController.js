@@ -411,3 +411,68 @@ export const deleteElection = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+/* =================================================
+   GET VOTER PART COUNTS (STATE → DISTRICT → AC → PART)
+================================================= */
+export const getVoterParts = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        b.state,
+        b.district,
+        b.ac_name_no AS assembly_constituency,
+        b.part_name_no AS part_name,
+        COUNT(u.id)::int AS voters
+      FROM users u
+      JOIN booths b ON b.id = u.permanent_booth_id
+      GROUP BY
+        b.state,
+        b.district,
+        b.ac_name_no,
+        b.part_name_no
+      ORDER BY
+        b.state,
+        b.district,
+        b.ac_name_no,
+        b.part_name_no
+    `);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Voter parts error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/* =========================
+   GET VOTERS BY PART
+========================= */
+export const getVotersByPart = async (req, res) => {
+  try {
+    const { part } = req.query;
+
+    if (!part) {
+      return res.status(400).json({ message: "Part name required" });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT
+        u.id,
+        u.voter_id,
+        CONCAT(u.first_name, ' ', u.last_name) AS name
+      FROM users u
+      JOIN booths b ON b.id = u.permanent_booth_id
+      WHERE b.part_name_no = $1
+      ORDER BY name
+      `,
+      [part]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Voter list error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
