@@ -18,7 +18,7 @@ import {
 import {
   getVoterParts,
   getVotersByPart,
-} from "../controllers/masterAdminVoterController.js";
+} from "../controllers/masterAdminController.js";
 
 
 const router = express.Router();
