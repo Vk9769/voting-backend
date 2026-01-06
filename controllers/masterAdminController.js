@@ -186,6 +186,17 @@ export const createElection = async (req, res) => {
       description
     } = req.body;
 
+
+    // 🔐 HARD SAFETY (IMPORTANT)
+    if (!election_type) {
+      election_type = election_category;
+    }
+
+    if (!election_type) {
+      return res.status(400).json({
+        message: "election_type is required"
+      });
+    }
     const createdBy = req.user.userId;
 
     const result = await pool.query(
