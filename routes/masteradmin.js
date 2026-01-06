@@ -1,24 +1,24 @@
 import express from "express";
 import { authenticate } from "../middleware/auth.js";
 import { allowRoles } from "../middleware/roleCheck.js";
-import { getAllBoothsHierarchy,
+
+import {
+  getAllBoothsHierarchy,
   getAdminProfile,
   updateAdminProfile,
-  uploadAdminPhoto, } from "../controllers/masterAdminController.js";
-import { uploadProfilePhoto } from "../middleware/uploadProfilePhoto.js";
-import {
+  uploadAdminPhoto,
   createElection,
   updateElection,
   getAllElections,
   getElectionById,
   changeElectionStatus,
-  deleteElection
-} from "../controllers/masterAdminController.js";
-
-import {
+  deleteElection,
   getVoterParts,
   getVotersByPart,
 } from "../controllers/masterAdminController.js";
+
+import { uploadProfilePhoto } from "../middleware/uploadProfilePhoto.js";
+
 
 
 const router = express.Router();
@@ -120,15 +120,16 @@ router.delete(
 router.get(
   "/voter-parts",
   authenticate,
-  authorizeRoles("MASTER_ADMIN"),
+  allowRoles("MASTER_ADMIN"),
   getVoterParts
 );
 
 router.get(
   "/voters",
   authenticate,
-  authorizeRoles("MASTER_ADMIN"),
+  allowRoles("MASTER_ADMIN"),
   getVotersByPart
 );
+
 
 export default router;
