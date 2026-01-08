@@ -16,6 +16,7 @@ export const getAgentProfile = async (req, res) => {
         u.voter_id,
         u.first_name,
         u.last_name,
+        u.relatives_name,
         u.phone,
         u.email,
         u.gov_id_type,
@@ -65,6 +66,7 @@ export const updateAgentProfile = async (req, res) => {
     const {
       first_name,
       last_name,
+      relatives_name,
       phone,
       email,
       gender,
@@ -74,25 +76,28 @@ export const updateAgentProfile = async (req, res) => {
 
     await pool.query(
       `
-      UPDATE users SET
+       UPDATE users
+      SET
         first_name = $1,
-        last_name  = $2,
-        phone      = $3,
-        email      = $4,
-        gender     = $5,
-        gov_id_type= $6,
-        gov_id_no  = $7
-      WHERE id = $8
+        last_name = $2,
+        relatives_name = $3,
+        phone = $4,
+        email = $5,
+        gov_id_type = $6,
+        gov_id_no = $7,
+        profile_photo = $8
+      WHERE id = $9
       `,
       [
         first_name,
         last_name,
+        relatives_name,
         phone,
         email,
-        gender,
         gov_id_type,
         gov_id_no,
-        userId,
+        profile_photo,
+        userId
       ]
     );
 

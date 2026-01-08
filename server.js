@@ -32,7 +32,7 @@ app.use("/auth", authRoutes);
 app.use("/masteradmin", masterAdminRoutes);
 
 //AGENT ROOT
-app.use("/api/agent", agentRoutes);
+app.use("/agent", agentRoutes);
 
 //VOTER ROOT
 app.use("/voter", voterRoutes);
