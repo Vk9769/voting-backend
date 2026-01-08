@@ -76,7 +76,7 @@ export const updateAgentProfile = async (req, res) => {
 
     await pool.query(
       `
-       UPDATE users
+      UPDATE users
       SET
         first_name = $1,
         last_name = $2,
@@ -84,9 +84,8 @@ export const updateAgentProfile = async (req, res) => {
         phone = $4,
         email = $5,
         gov_id_type = $6,
-        gov_id_no = $7,
-        profile_photo = $8
-      WHERE id = $9
+        gov_id_no = $7
+      WHERE id = $8
       `,
       [
         first_name,
@@ -96,7 +95,6 @@ export const updateAgentProfile = async (req, res) => {
         email,
         gov_id_type,
         gov_id_no,
-        profile_photo,
         userId
       ]
     );
@@ -146,4 +144,5 @@ export const uploadAgentPhoto = async (req, res) => {
     console.error("Agent photo error:", err);
     res.status(500).json({ message: "Server error" });
   }
+  console.log("Uploaded S3 location:", req.file.location);
 };
