@@ -28,6 +28,8 @@ export const getVoterProfile = async (req, res) => {
         b.id   AS booth_id,
         b.name AS booth_name,
         b.address AS booth_address,
+        b.latitude AS booth_lat,
+        b.longitude AS booth_lng,
 
         COALESCE(mv.mark_status, 'Pending') AS voting_status
 
