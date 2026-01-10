@@ -147,6 +147,7 @@ export const getAllBoothsHierarchy = async (req, res) => {
   try {
     const { rows } = await pool.query(`
       SELECT
+        MIN(id) AS id,
         state,
         district,
         ac_name_no   AS assembly_constituency,
