@@ -4,6 +4,7 @@ import { allowRoles } from "../middleware/roleCheck.js";
 import { uploadProfilePhoto } from "../middleware/uploadProfilePhoto.js";
 
 import {
+  createAgent,
   getAgentProfile,
   updateAgentProfile,
   uploadAgentPhoto,
@@ -11,6 +12,16 @@ import {
 
 const router = express.Router();
 
+/* =========================
+   CREATE AGENT (ADMIN SIDE)
+========================= */
+router.post(
+  "/",
+  authenticate,
+  allowRoles("ADMIN", "SUPER_ADMIN", "MASTER_ADMIN"),
+  uploadProfilePhoto.single("profilePhoto"), // optional
+  createAgent
+);
 /* =========================
    AGENT PROFILE
 ========================= */
