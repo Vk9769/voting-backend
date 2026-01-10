@@ -4,7 +4,8 @@ import { allowRoles } from "../middleware/roleCheck.js";
 import {
   getVoterProfile,
   updateVoterProfile,
-  uploadVoterPhoto
+  uploadVoterPhoto,
+  getVoterByVoterId
 } from "../controllers/voterController.js";
 import { uploadProfilePhoto } from "../middleware/uploadProfilePhoto.js";
 
@@ -39,6 +40,13 @@ router.post(
   allowRoles("VOTER"),
   uploadProfilePhoto.single("photo"),
   uploadVoterPhoto
+);
+
+router.get(
+  "/by-voter-id/:voterId",
+  authenticate,
+  allowRoles("MASTER_ADMIN", "SUPER_ADMIN", "ADMIN"),
+  getVoterByVoterId
 );
 
 export default router;

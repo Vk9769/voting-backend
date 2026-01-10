@@ -185,3 +185,41 @@ export const uploadVoterPhoto = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+
+export const getVoterByVoterId = async (req, res) => {
+  try {
+    const { voterId } = req.params;
+
+    const result = await pool.query(
+      `
+      SELECT
+        u.id,
+        u.voter_id,
+        u.first_name,
+        u.last_name,
+        u.phone,
+        u.gender,
+        u.address,
+        u.date_of_birth AS dob,
+        b.state,
+        b.district,
+        b.ac_name_no AS assembly_constituency,
+        b.id AS boothId
+      FROM users u
+      LEFT JOIN booths b ON b.id = u.permanent_booth_id
+      WHERE u.voter_id = $1
+      `,
+      [voterId]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({ message: "Voter not found" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Voter search error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
