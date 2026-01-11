@@ -22,12 +22,19 @@ export const createAgent = async (req, res) => {
       gender,
       dob,
       address,
-      boothId
+      boothId,
+      electionId,
+      idType,
+      idNumber
     } = req.body;
 
-    // =========================
-    // 1️⃣ CHECK VOTER EXISTENCE
-    // =========================
+    if (!boothId || !electionId) {
+      throw new Error("Booth and Election are required");
+    }
+
+    /* =========================
+       1️⃣ CHECK USER
+    ========================= */
     const existingUser = await client.query(
       `SELECT id FROM users WHERE voter_id = $1`,
       [voterId]
@@ -36,15 +43,13 @@ export const createAgent = async (req, res) => {
     let userId;
     let isNewUser = false;
 
-    if (existingUser.rows.length > 0) {
-      // ✅ VOTER EXISTS → DO NOT TOUCH USER DATA
+    if (existingUser.rows.length) {
       userId = existingUser.rows[0].id;
     } else {
-      // ❌ NEW VOTER → CREATE USER
       isNewUser = true;
 
       if (!password) {
-        throw new Error("Password is required for new user");
+        throw new Error("Password required for new voter");
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -60,9 +65,13 @@ export const createAgent = async (req, res) => {
           password,
           gender,
           date_of_birth,
-          address
+          address,
+          gov_id_type,
+          gov_id_no,
+          permanent_booth_id,
+          profile_photo
         )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
         RETURNING id
         `,
         [
@@ -74,16 +83,32 @@ export const createAgent = async (req, res) => {
           hashedPassword,
           gender,
           dob,
-          address
+          address,
+          idType || "Aadhaar",
+          idNumber,
+          boothId,
+          req.file?.location || null
         ]
       );
 
       userId = newUser.rows[0].id;
     }
 
-    // =========================
-    // 2️⃣ ASSIGN AGENT ROLE
-    // =========================
+    /* =========================
+       2️⃣ ENSURE VOTER ROLE
+    ========================= */
+    await client.query(
+      `
+      INSERT INTO user_roles (user_id, role_id)
+      SELECT $1, id FROM roles WHERE name = 'VOTER'
+      ON CONFLICT DO NOTHING
+      `,
+      [userId]
+    );
+
+    /* =========================
+       3️⃣ ENSURE AGENT ROLE
+    ========================= */
     await client.query(
       `
       INSERT INTO user_roles (user_id, role_id)
@@ -93,45 +118,43 @@ export const createAgent = async (req, res) => {
       [userId]
     );
 
-    // =========================
-    // 3️⃣ ASSIGN BOOTH + PHOTO
-    // =========================
+    /* =========================
+       4️⃣ ASSIGN ELECTION + BOOTH
+    ========================= */
     await client.query(
       `
       INSERT INTO election_agents (
         agent_id,
+        election_id,
         booth_id,
         profile_photo
       )
-      VALUES ($1, $2, $3)
-      ON CONFLICT DO NOTHING
+      VALUES ($1,$2,$3,$4)
+      ON CONFLICT (agent_id) DO NOTHING
       `,
       [
         userId,
+        electionId,
         boothId,
-        // ✅ upload photo ONLY for new user
         isNewUser ? req.file?.location || null : null
       ]
     );
 
     await client.query("COMMIT");
 
-    res.status(200).json({
+    res.json({
       message: isNewUser
-        ? "New agent created and assigned successfully"
-        : "Existing voter assigned as agent successfully",
+        ? "New voter created and assigned as agent"
+        : "Existing voter assigned as agent",
       userId,
+      electionId,
       boothId
     });
 
   } catch (err) {
     await client.query("ROLLBACK");
     console.error("Create agent error:", err);
-
-    res.status(500).json({
-      message: err.message || "Server error"
-    });
-
+    res.status(500).json({ message: err.message });
   } finally {
     client.release();
   }
