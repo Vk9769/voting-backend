@@ -63,6 +63,11 @@ export const login = async (req, res) => {
       allowedRoles.includes(role)
     );
 
+
+    console.log("USER ROLES:", user.roles);
+    console.log("ALLOWED ROLES:", allowedRoles);
+    console.log("PRIMARY ROLE:", primaryRole);
+
     if (!primaryRole) {
       return res.status(403).json({ message: "Invalid credentials" });
     }
@@ -92,6 +97,3 @@ export const login = async (req, res) => {
   }
 };
 
-console.log("USER ROLES:", user.roles);
-console.log("ALLOWED ROLES:", allowedRoles);
-console.log("PRIMARY ROLE:", primaryRole);
