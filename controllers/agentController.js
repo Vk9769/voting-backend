@@ -199,16 +199,21 @@ export const getAgentProfile = async (req, res) => {
     const agent = result.rows[0];
 
     // ✅ Sign ONLY agent photo
-    if (
-      agent.agent_profile_photo &&
-      agent.agent_profile_photo.includes(".amazonaws.com/")
-    ) {
-      const key = agent.agent_profile_photo
-        .split(".amazonaws.com/")[1]
-        .replace(/^\/+/, "");
+   // ✅ SAFE S3 SIGNING (NO DOUBLE SIGN)
+if (agent.agent_profile_photo) {
+  // Already signed → send as-is
+  if (agent.agent_profile_photo.includes("X-Amz-Signature")) {
+    // do nothing
+  }
+  // Raw S3 URL → sign once
+  else if (agent.agent_profile_photo.includes(".amazonaws.com/")) {
+    const key = agent.agent_profile_photo
+      .split(".amazonaws.com/")[1]
+      .replace(/^\/+/, "");
 
-      agent.agent_profile_photo = await getSignedImageUrl(key);
-    }
+    agent.agent_profile_photo = await getSignedImageUrl(key);
+  }
+}
 
     res.json({ data: agent });
   } catch (err) {
