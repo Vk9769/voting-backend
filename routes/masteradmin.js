@@ -74,6 +74,14 @@ router.put(
   updateElection
 );
 
+
+router.get(
+  "/elections/active",
+  authenticate,
+  allowRoles("MASTER_ADMIN", "SUPER_ADMIN", "ADMIN"),
+  getActiveElections
+);
+
 /* =========================
    GET ALL ELECTIONS
 ========================= */
@@ -130,13 +138,6 @@ router.get(
   authenticate,
   allowRoles("MASTER_ADMIN"),
   getVotersByPart
-);
-
-router.get(
-  "/elections/active", 
-  authenticate, 
-  allowRoles("ADMIN","MASTER_ADMIN"), 
-  getActiveElections
 );
 
 
