@@ -478,3 +478,18 @@ export const getVotersByPart = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+export const getActiveElections = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, election_name
+      FROM elections
+      WHERE status IN ('upcoming', 'ongoing')
+      ORDER BY created_at DESC
+    `);
+
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};

@@ -199,9 +199,14 @@ export const getVoterByVoterId = async (req, res) => {
         u.first_name,
         u.last_name,
         u.phone,
+        u.email,
+        u.gov_id_type,
+        u.gov_id_no,
         u.gender,
         u.address,
         u.date_of_birth AS dob,
+        u.profile_photo,
+
         b.state,
         b.district,
         b.ac_name_no AS assembly_constituency,
@@ -217,9 +222,23 @@ export const getVoterByVoterId = async (req, res) => {
       return res.status(404).json({ message: "Voter not found" });
     }
 
-    res.json(result.rows[0]);
+    const voter = result.rows[0];
+
+    // ✅ SIGN PROFILE PHOTO
+    if (
+      voter.profile_photo &&
+      voter.profile_photo.includes(".amazonaws.com/")
+    ) {
+      const key = voter.profile_photo
+        .split(".amazonaws.com/")[1]
+        .replace(/^\/+/, "");
+      voter.profile_photo = await getSignedImageUrl(key);
+    }
+
+    res.json(voter);
   } catch (err) {
     console.error("Voter search error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
+

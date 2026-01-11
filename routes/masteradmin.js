@@ -15,6 +15,7 @@ import {
   deleteElection,
   getVoterParts,
   getVotersByPart,
+  getActiveElections,
 } from "../controllers/masterAdminController.js";
 
 import { uploadProfilePhoto } from "../middleware/uploadProfilePhoto.js";
@@ -129,6 +130,13 @@ router.get(
   authenticate,
   allowRoles("MASTER_ADMIN"),
   getVotersByPart
+);
+
+router.get(
+  "/elections/active", 
+  authenticate, 
+  allowRoles("ADMIN","MASTER_ADMIN"), 
+  getActiveElections
 );
 
 
