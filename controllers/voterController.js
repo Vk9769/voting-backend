@@ -224,27 +224,19 @@ export const getVoterByVoterId = async (req, res) => {
 
     const voter = result.rows[0];
 
-    // ✅ SIGN PROFILE PHOTO
-    // ✅ SIGN PROFILE PHOTO (SAFE)
+    // ✅ SIGN PROFILE PHOTO CORRECTLY
     if (
       voter.profile_photo &&
-      typeof voter.profile_photo === "string"
+      typeof voter.profile_photo === "string" &&
+      voter.profile_photo.includes(".amazonaws.com/") &&
+      !voter.profile_photo.includes("X-Amz-Signature")
     ) {
-      // Already signed → leave it
-      if (voter.profile_photo.includes("X-Amz-Signature")) {
-        // do nothing
-      }
-      // Raw S3 URL → sign it
-      else if (voter.profile_photo.includes(".amazonaws.com/")) {
-        const key = voter.profile_photo
-          .split(".amazonaws.com/")[1]
-          .replace(/^\/+/, "");
+      const key = voter.profile_photo
+        .split(".amazonaws.com/")[1]
+        .replace(/^\/+/, "");
 
-        voter.profile_photo = await getSignedImageUrl(key);
-      }
+      voter.profile_photo = await getSignedImageUrl(key);
     }
-
-
 
     res.json(voter);
   } catch (err) {
