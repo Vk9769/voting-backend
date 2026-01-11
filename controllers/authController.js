@@ -18,17 +18,18 @@ export const login = async (req, res) => {
         u.email,
         u.phone,
         u.password,
-        r.name AS role
+        ARRAY_AGG(r.name) AS roles
       FROM users u
       JOIN user_roles ur ON ur.user_id = u.id
       JOIN roles r ON r.id = ur.role_id
       WHERE u.voter_id = $1
-         OR u.email = $1
-         OR u.phone = $1
-      LIMIT 1
+        OR u.email = $1
+        OR u.phone = $1
+      GROUP BY u.id
       `,
       [identifier]
     );
+
 
     if (result.rows.length === 0) {
       return res.status(401).json({ message: "Invalid credentials" });
@@ -41,7 +42,7 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-   // 🔒 APP → ROLE MAPPING
+    // 🔒 APP → ROLE MAPPING
     const appRoleMap = {
       VOTER: "VOTER",
       AGENT: "AGENT",
@@ -61,25 +62,26 @@ export const login = async (req, res) => {
       });
     }
 
+    const primaryRole = allowedRoles.find(r => user.roles.includes(r));
+
     const token = jwt.sign(
-      {
-        userId: user.id,
-        role: user.role,
-      },
+      { userId: user.id, role: primaryRole },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES || "7d" }
+      { expiresIn: "7d" }
     );
 
     return res.json({
       token,
       user: {
         id: user.id,
-        role: user.role,
+        role: primaryRole,
+        roles: user.roles,
         voter_id: user.voter_id,
         email: user.email,
         phone: user.phone
       }
     });
+
 
   } catch (err) {
     console.error("Login error:", err);
