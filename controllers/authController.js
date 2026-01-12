@@ -42,14 +42,18 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // ✅ APP → ROLE MAPPING (ARRAYS ONLY)
+    // 🔒 APP → ROLE MAPPING 
     const appRoleMap = {
-      VOTER: ["VOTER"],
-      AGENT: ["AGENT", "SUPER_AGENT", "MASTER_AGENT"],
-      BLO: ["BLO"],
-      OBSERVER: ["OBSERVER"],
-      CANDIDATE: ["CANDIDATE"],
-      ADMIN: ["ADMIN", "SUPER_ADMIN", "MASTER_ADMIN"]
+     VOTER: "VOTER",
+     AGENT: "AGENT", 
+     BLO: "BLO", 
+     SUPER_AGENT: "SUPER_AGENT", 
+     MASTER_AGENT: "MASTER_AGENT", 
+     OBSERVER: "OBSERVER", 
+     CANDIDATE: "CANDIDATE", 
+     ADMIN: "ADMIN", 
+     SUPER_ADMIN: "SUPER_ADMIN", 
+     MASTER_ADMIN: "MASTER_ADMIN", 
     };
 
     const allowedRoles = appRoleMap[app];
