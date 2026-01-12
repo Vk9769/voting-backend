@@ -33,8 +33,8 @@ export const createAgent = async (req, res) => {
     }
 
     /* =========================
-       1️⃣ CHECK USER
-    ========================= */
+    1️⃣ CHECK USER
+ ========================= */
     const existingUser = await client.query(
       `SELECT id FROM users WHERE voter_id = $1`,
       [voterId]
@@ -44,8 +44,53 @@ export const createAgent = async (req, res) => {
     let isNewUser = false;
 
     if (existingUser.rows.length) {
+      // =========================
+      // EXISTING USER
+      // =========================
       userId = existingUser.rows[0].id;
+
+      await client.query(
+        `
+    UPDATE users SET
+      first_name = COALESCE($1, first_name),
+      last_name  = COALESCE($2, last_name),
+      phone      = COALESCE($3, phone),
+      email      = COALESCE($4, email),
+      gender     = COALESCE($5, gender),
+      date_of_birth = COALESCE($6, date_of_birth),
+      address    = COALESCE($7, address),
+      gov_id_type = COALESCE($8, gov_id_type),
+      gov_id_no   = COALESCE($9, gov_id_no),
+      permanent_booth_id = $10
+    WHERE id = $11
+    `,
+        [
+          firstName,
+          lastName,
+          phone,
+          email,
+          gender,
+          dob,
+          address,
+          idType || "Aadhaar",
+          idNumber,
+          boothId,
+          userId
+        ]
+      );
+
+      // ✅ update photo ONLY if uploaded
+      if (req.file?.location) {
+        await client.query(
+          `UPDATE users SET profile_photo = $1 WHERE id = $2`,
+          [req.file.location, userId]
+        );
+      }
+
     } else {
+      // =========================
+      // NEW USER
+      // =========================
       isNewUser = true;
 
       if (!password) {
@@ -56,24 +101,24 @@ export const createAgent = async (req, res) => {
 
       const newUser = await client.query(
         `
-        INSERT INTO users (
-          voter_id,
-          first_name,
-          last_name,
-          phone,
-          email,
-          password,
-          gender,
-          date_of_birth,
-          address,
-          gov_id_type,
-          gov_id_no,
-          permanent_booth_id,
-          profile_photo
-        )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-        RETURNING id
-        `,
+    INSERT INTO users (
+      voter_id,
+      first_name,
+      last_name,
+      phone,
+      email,
+      password,
+      gender,
+      date_of_birth,
+      address,
+      gov_id_type,
+      gov_id_no,
+      permanent_booth_id,
+      profile_photo
+    )
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+    RETURNING id
+    `,
         [
           voterId,
           firstName,
@@ -93,6 +138,7 @@ export const createAgent = async (req, res) => {
 
       userId = newUser.rows[0].id;
     }
+
 
     /* =========================
        2️⃣ ENSURE VOTER ROLE
