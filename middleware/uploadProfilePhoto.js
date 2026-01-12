@@ -65,3 +65,15 @@ export const uploadProfilePhoto = multer({
     }
   },
 });
+
+export const uploadAgentCreatePhoto = multer({
+  storage: multerS3({
+    s3,
+    bucket: "voting-app-profile-photos",
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    key: (req, file, cb) => {
+      const ext = file.originalname.split(".").pop();
+      cb(null, `profile-photos/agent/temp-${Date.now()}.${ext}`);
+    },
+  }),
+});

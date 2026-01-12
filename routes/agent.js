@@ -19,7 +19,7 @@ router.post(
   "/",
   authenticate,
   allowRoles("ADMIN", "SUPER_ADMIN", "MASTER_ADMIN"),
-  uploadProfilePhoto.single("profilePhoto"), // optional
+  upload.single("profilePhoto"),
   createAgent
 );
 /* =========================

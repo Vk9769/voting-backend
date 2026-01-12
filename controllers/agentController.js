@@ -122,7 +122,7 @@ export const createAgent = async (req, res) => {
        4️⃣ ASSIGN ELECTION + BOOTH
     ========================= */
     await client.query(
-      `
+          `
       INSERT INTO election_agents (
         agent_id,
         election_id,
@@ -130,15 +130,17 @@ export const createAgent = async (req, res) => {
         profile_photo
       )
       VALUES ($1,$2,$3,$4)
-      ON CONFLICT (agent_id) DO NOTHING
+      ON CONFLICT (agent_id)
+      DO UPDATE SET profile_photo = EXCLUDED.profile_photo
       `,
       [
         userId,
         electionId,
         boothId,
-        isNewUser ? req.file?.location || null : null
+        req.file?.location || null
       ]
     );
+
 
     await client.query("COMMIT");
 
@@ -199,21 +201,21 @@ export const getAgentProfile = async (req, res) => {
     const agent = result.rows[0];
 
     // ✅ Sign ONLY agent photo
-   // ✅ SAFE S3 SIGNING (NO DOUBLE SIGN)
-if (agent.agent_profile_photo) {
-  // Already signed → send as-is
-  if (agent.agent_profile_photo.includes("X-Amz-Signature")) {
-    // do nothing
-  }
-  // Raw S3 URL → sign once
-  else if (agent.agent_profile_photo.includes(".amazonaws.com/")) {
-    const key = agent.agent_profile_photo
-      .split(".amazonaws.com/")[1]
-      .replace(/^\/+/, "");
+    // ✅ SAFE S3 SIGNING (NO DOUBLE SIGN)
+    if (agent.agent_profile_photo) {
+      // Already signed → send as-is
+      if (agent.agent_profile_photo.includes("X-Amz-Signature")) {
+        // do nothing
+      }
+      // Raw S3 URL → sign once
+      else if (agent.agent_profile_photo.includes(".amazonaws.com/")) {
+        const key = agent.agent_profile_photo
+          .split(".amazonaws.com/")[1]
+          .replace(/^\/+/, "");
 
-    agent.agent_profile_photo = await getSignedImageUrl(key);
-  }
-}
+        agent.agent_profile_photo = await getSignedImageUrl(key);
+      }
+    }
 
     res.json({ data: agent });
   } catch (err) {
