@@ -44,16 +44,16 @@ export const login = async (req, res) => {
 
     // 🔒 APP → ROLE MAPPING 
     const appRoleMap = {
-     VOTER: "VOTER",
-     AGENT: "AGENT", 
-     BLO: "BLO", 
-     SUPER_AGENT: "SUPER_AGENT", 
-     MASTER_AGENT: "MASTER_AGENT", 
-     OBSERVER: "OBSERVER", 
-     CANDIDATE: "CANDIDATE", 
-     ADMIN: "ADMIN", 
-     SUPER_ADMIN: "SUPER_ADMIN", 
-     MASTER_ADMIN: "MASTER_ADMIN", 
+      VOTER: "VOTER",
+      AGENT: "AGENT",
+      BLO: "BLO",
+      SUPER_AGENT: "SUPER_AGENT",
+      MASTER_AGENT: "MASTER_AGENT",
+      OBSERVER: "OBSERVER",
+      CANDIDATE: "CANDIDATE",
+      ADMIN: "ADMIN",
+      SUPER_ADMIN: "SUPER_ADMIN",
+      MASTER_ADMIN: "MASTER_ADMIN",
     };
 
     const allowedRoles = appRoleMap[app];
@@ -62,19 +62,19 @@ export const login = async (req, res) => {
       return res.status(403).json({ message: "Invalid app" });
     }
 
-    // ✅ ROLE MATCH CHECK
-    const primaryRole = user.roles.find(role =>
-      allowedRoles.includes(role)
-    );
-
+    // ✅ ROLE MATCH CHECK (STRING-BASED)
+    const primaryRole = user.roles.includes(allowedRoles)
+      ? allowedRoles
+      : null;
 
     console.log("USER ROLES:", user.roles);
-    console.log("ALLOWED ROLES:", allowedRoles);
+    console.log("REQUIRED ROLE:", allowedRoles);
     console.log("PRIMARY ROLE:", primaryRole);
 
     if (!primaryRole) {
       return res.status(403).json({ message: "Invalid credentials" });
     }
+
 
     // ✅ TOKEN
     const token = jwt.sign(
