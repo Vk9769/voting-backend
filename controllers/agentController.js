@@ -122,7 +122,7 @@ export const createAgent = async (req, res) => {
        4️⃣ ASSIGN ELECTION + BOOTH
     ========================= */
     await client.query(
-          `
+      `
       INSERT INTO election_agents (
         agent_id,
         election_id,
@@ -183,16 +183,14 @@ export const getAgentProfile = async (req, res) => {
         u.gov_id_type,
         u.gov_id_no,
         u.gender,
-        ea.profile_photo AS agent_profile_photo,
-        r.name AS role
+        ea.profile_photo AS agent_profile_photo
       FROM users u
-      JOIN user_roles ur ON ur.user_id = u.id
-      JOIN roles r ON r.id = ur.role_id
       LEFT JOIN election_agents ea ON ea.agent_id = u.id
       WHERE u.id = $1
       `,
       [userId]
     );
+
 
     if (!result.rows.length) {
       return res.status(404).json({ message: "Agent not found" });
