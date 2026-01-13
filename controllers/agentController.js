@@ -19,13 +19,15 @@ const parseDOB = (dob) => {
   return null;
 };
 
-console.log("REQ BODY:", req.body);
-console.log("REQ FILE:", req.file?.location);
-
 /* =========================
    CREATE AGENT
 ========================= */
 export const createAgent = async (req, res) => {
+
+  console.log("🟢 CREATE AGENT REQUEST");
+  console.log("REQ BODY:", req.body);
+  console.log("REQ FILE:", req.file?.location);
+
   const client = await pool.connect();
 
   try {
@@ -46,6 +48,11 @@ export const createAgent = async (req, res) => {
       idType,
       idNumber,
     } = req.body;
+
+    if (!voterId) {
+      throw new Error("voterId missing from request body");
+    }
+
 
     if (!boothId || !electionId) {
       throw new Error("Booth and Election are required");
