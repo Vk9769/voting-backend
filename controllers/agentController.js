@@ -19,6 +19,9 @@ const parseDOB = (dob) => {
   return null;
 };
 
+console.log("REQ BODY:", req.body);
+console.log("REQ FILE:", req.file?.location);
+
 /* =========================
    CREATE AGENT
 ========================= */
