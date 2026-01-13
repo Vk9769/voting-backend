@@ -54,16 +54,18 @@ export const createAgent = async (req, res) => {
        1️⃣ CHECK USER
     ========================= */
     const { rows } = await client.query(
-      `SELECT id FROM users WHERE voter_id = $1`,
+      `SELECT id, profile_photo FROM users WHERE voter_id = $1`,
       [voterId]
     );
 
     let userId;
     let isNewUser = false;
+    let userProfilePhoto = null;
 
     if (rows.length) {
       // 🔁 EXISTING VOTER
       userId = rows[0].id;
+      userProfilePhoto = rows[0].profile_photo;
 
       await client.query(
         `
@@ -122,7 +124,7 @@ export const createAgent = async (req, res) => {
           profile_photo
         )
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-        RETURNING id
+        RETURNING id, profile_photo
         `,
         [
           voterId,
@@ -142,16 +144,18 @@ export const createAgent = async (req, res) => {
       );
 
       userId = insert.rows[0].id;
+      userProfilePhoto = insert.rows[0].profile_photo;
     }
 
     /* =========================
-       2️⃣ UPDATE PHOTO (BOTH PLACES)
+       2️⃣ UPDATE USER PHOTO IF UPLOADED
     ========================= */
     if (req.file?.location) {
       await client.query(
         `UPDATE users SET profile_photo = $1 WHERE id = $2`,
         [req.file.location, userId]
       );
+      userProfilePhoto = req.file.location;
     }
 
     /* =========================
@@ -161,7 +165,7 @@ export const createAgent = async (req, res) => {
       `
       INSERT INTO user_roles (user_id, role_id)
       SELECT $1, id FROM roles WHERE name = 'VOTER'
-      ON CONFLICT (user_id, role_id) DO NOTHING
+      ON CONFLICT DO NOTHING
       `,
       [userId]
     );
@@ -170,13 +174,13 @@ export const createAgent = async (req, res) => {
       `
       INSERT INTO user_roles (user_id, role_id)
       SELECT $1, id FROM roles WHERE name = 'AGENT'
-      ON CONFLICT (user_id, role_id) DO NOTHING
+      ON CONFLICT DO NOTHING
       `,
       [userId]
     );
 
     /* =========================
-       4️⃣ ASSIGN / UPDATE AGENT
+       4️⃣ ASSIGN AGENT (PHOTO SAFE)
     ========================= */
     await client.query(
       `
@@ -197,7 +201,7 @@ export const createAgent = async (req, res) => {
         userId,
         electionId,
         boothId,
-        req.file?.location || null,
+        userProfilePhoto, // 🔥 THIS FIXES EVERYTHING
       ]
     );
 
@@ -221,6 +225,7 @@ export const createAgent = async (req, res) => {
     client.release();
   }
 };
+
 
 
 /* =========================
