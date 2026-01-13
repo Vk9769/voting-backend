@@ -180,30 +180,54 @@ export const createAgent = async (req, res) => {
     );
 
     /* =========================
-       4️⃣ ASSIGN AGENT (PHOTO SAFE)
-    ========================= */
-    await client.query(
-      `
-      INSERT INTO election_agents (
-        agent_id,
-        election_id,
-        booth_id,
-        profile_photo
-      )
-      VALUES ($1,$2,$3,$4)
-      ON CONFLICT (agent_id)
-      DO UPDATE SET
-        election_id = EXCLUDED.election_id,
-        booth_id = EXCLUDED.booth_id,
-        profile_photo = COALESCE(EXCLUDED.profile_photo, election_agents.profile_photo)
-      `,
-      [
-        userId,
-        electionId,
-        boothId,
-        userProfilePhoto, // 🔥 THIS FIXES EVERYTHING
-      ]
+   4️⃣ ASSIGN / REASSIGN AGENT (SAFE)
+========================= */
+
+    // 🔎 Check if agent already exists
+    const existingAgent = await client.query(
+      `SELECT id FROM election_agents WHERE agent_id = $1`,
+      [userId]
     );
+
+    if (existingAgent.rows.length) {
+      // 🔁 UPDATE EXISTING AGENT ASSIGNMENT
+      await client.query(
+        `
+    UPDATE election_agents
+    SET
+      election_id = $1,
+      booth_id = $2,
+      profile_photo = COALESCE($3, profile_photo),
+      assigned_at = NOW()
+    WHERE agent_id = $4
+    `,
+        [
+          electionId,
+          boothId,
+          userProfilePhoto,
+          userId,
+        ]
+      );
+    } else {
+      // 🆕 INSERT NEW AGENT ASSIGNMENT
+      await client.query(
+        `
+    INSERT INTO election_agents (
+      agent_id,
+      election_id,
+      booth_id,
+      profile_photo
+    )
+    VALUES ($1,$2,$3,$4)
+    `,
+        [
+          userId,
+          electionId,
+          boothId,
+          userProfilePhoto,
+        ]
+      );
+    }
 
     await client.query("COMMIT");
 
