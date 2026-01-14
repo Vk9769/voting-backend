@@ -432,7 +432,7 @@ export const getAgentVoters = async (req, res) => {
   try {
     const agentId = req.user.userId;
 
-    // 1️⃣ Agent assignment
+    // 1️⃣ Get agent assignment
     const agentRes = await pool.query(
       `
       SELECT election_id, booth_id
@@ -448,7 +448,7 @@ export const getAgentVoters = async (req, res) => {
 
     const { election_id, booth_id } = agentRes.rows[0];
 
-    // 2️⃣ Fetch voters of this booth
+    // 2️⃣ Fetch voters directly from USERS using permanent_booth_id
     const voters = await pool.query(
       `
       SELECT
@@ -460,15 +460,14 @@ export const getAgentVoters = async (req, res) => {
         mv.mark_status,
         mv.created_at AS marked_at
 
-      FROM election_voters ev
-      JOIN users u ON u.id = ev.voter_id
+      FROM users u
+
       LEFT JOIN marked_voters mv
         ON mv.voter_id = u.id
        AND mv.agent_id = $1
        AND mv.election_id = $2
 
-      WHERE ev.booth_id = $3
-        AND ev.election_id = $2
+      WHERE u.permanent_booth_id = $3
 
       ORDER BY u.first_name
       `,
@@ -486,6 +485,7 @@ export const getAgentVoters = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 /* =========================
    MARK VOTERS
