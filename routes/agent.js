@@ -13,6 +13,7 @@ import {
   updateAgentProfile,
   uploadAgentPhoto,
   getAgentVoters,
+  markVoter,
 } from "../controllers/agentController.js";
 
 const router = express.Router();
