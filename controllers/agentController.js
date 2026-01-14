@@ -424,3 +424,133 @@ export const uploadAgentPhoto = async (req, res) => {
   }
 };
 
+/* =========================
+   GET VOTERS
+========================= */
+
+export const getAgentVoters = async (req, res) => {
+  try {
+    const agentId = req.user.userId;
+
+    // 1️⃣ Agent assignment
+    const agentRes = await pool.query(
+      `
+      SELECT election_id, booth_id
+      FROM election_agents
+      WHERE agent_id = $1
+      `,
+      [agentId]
+    );
+
+    if (!agentRes.rows.length) {
+      return res.status(404).json({ message: "Agent not assigned" });
+    }
+
+    const { election_id, booth_id } = agentRes.rows[0];
+
+    // 2️⃣ Fetch voters of this booth
+    const voters = await pool.query(
+      `
+      SELECT
+        u.id,
+        u.voter_id,
+        u.first_name,
+        u.last_name,
+
+        mv.mark_status,
+        mv.created_at AS marked_at
+
+      FROM election_voters ev
+      JOIN users u ON u.id = ev.voter_id
+      LEFT JOIN marked_voters mv
+        ON mv.voter_id = u.id
+       AND mv.agent_id = $1
+       AND mv.election_id = $2
+
+      WHERE ev.booth_id = $3
+        AND ev.election_id = $2
+
+      ORDER BY u.first_name
+      `,
+      [agentId, election_id, booth_id]
+    );
+
+    res.json({
+      booth_id,
+      election_id,
+      voters: voters.rows,
+    });
+
+  } catch (err) {
+    console.error("Fetch voters error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/* =========================
+   MARK VOTERS
+========================= */
+
+export const markVoter = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const agentId = req.user.userId;
+    const { voterId, status } = req.body;
+
+    await client.query("BEGIN");
+
+    const agentRes = await client.query(
+      `SELECT election_id, booth_id FROM election_agents WHERE agent_id = $1`,
+      [agentId]
+    );
+
+    const { election_id, booth_id } = agentRes.rows[0];
+
+    // UNDO
+    if (status === "undo") {
+      await client.query(
+        `
+        DELETE FROM marked_voters
+        WHERE voter_id = $1
+          AND agent_id = $2
+          AND election_id = $3
+        `,
+        [voterId, agentId, election_id]
+      );
+
+      await client.query("COMMIT");
+      return res.json({ success: true, message: "Mark removed" });
+    }
+
+    // MARK / OUR
+    await client.query(
+      `
+      INSERT INTO marked_voters (
+        voter_id,
+        agent_id,
+        election_id,
+        booth_id,
+        mark_status
+      )
+      VALUES ($1,$2,$3,$4,$5)
+      ON CONFLICT (voter_id, agent_id, election_id)
+      DO UPDATE SET
+        mark_status = EXCLUDED.mark_status,
+        created_at = NOW()
+      `,
+      [voterId, agentId, election_id, booth_id, status]
+    );
+
+    await client.query("COMMIT");
+
+    res.json({ success: true, status });
+
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Mark voter error:", err);
+    res.status(500).json({ message: "Server error" });
+  } finally {
+    client.release();
+  }
+};

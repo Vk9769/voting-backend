@@ -52,4 +52,18 @@ router.post(
   uploadAgentPhoto
 );
 
+router.get(
+  "/voters",
+  authenticate,
+  allowRoles("AGENT"),
+  getAgentVoters
+);
+
+router.post(
+  "/voters/mark",
+  authenticate,
+  allowRoles("AGENT"),
+  markVoter
+);
+
 export default router;
