@@ -88,7 +88,7 @@ router.get(
 router.get(
   "/elections",
   authenticate,
-  allowRoles("MASTER_ADMIN", "SUPER_ADMIN"),
+  allowRoles("MASTER_ADMIN", "SUPER_ADMIN","ADMIN","CANDIDATE","BLO","OBSERVER","MASTER_AGNET","SUPER_AGENT","AGENT","VOTER"),
   getAllElections
 );
 
