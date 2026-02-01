@@ -1,10 +1,9 @@
 import express from "express";
 import {
-  createElectionBooth,
+  allocateBoothsToElection,
   getElectionBoothsByElection,
   getElectionBoothsByWard,
-  updateElectionBooth,
-  deleteElectionBooth
+  removeBoothFromElection
 } from "../controllers/electionBoothController.js";
 
 import { authenticate } from "../middleware/auth.js";
@@ -13,45 +12,50 @@ import { allowRoles } from "../middleware/roleCheck.js";
 const router = express.Router();
 
 /* =========================
-   ELECTION BOOTHS (Municipal)
+   ELECTION BOOTH ALLOCATION
+   (Uses existing booths)
 ========================= */
 
-// Create election booth
+/**
+ * Allocate multiple booths to an election
+ * body: { election_id, booth_ids: [] }
+ */
 router.post(
-  "/",
+  "/allocate",
   authenticate,
   allowRoles("MASTER_ADMIN", "ADMIN"),
-  createElectionBooth
+  allocateBoothsToElection
 );
 
-// Get booths by election
+/**
+ * Get all allocated booths for an election
+ * query: ?election_id=
+ */
 router.get(
   "/",
   authenticate,
   getElectionBoothsByElection
 );
 
-// Get booths by ward
+/**
+ * Get allocated booths by ward
+ * query: ?election_id=&ward_id=
+ */
 router.get(
   "/by-ward",
   authenticate,
   getElectionBoothsByWard
 );
 
-// Update election booth
-router.put(
-  "/:id",
-  authenticate,
-  allowRoles("MASTER_ADMIN", "ADMIN"),
-  updateElectionBooth
-);
-
-// Delete election booth
+/**
+ * Remove booth from election (un-allocate)
+ * param: election_booth_id
+ */
 router.delete(
   "/:id",
   authenticate,
   allowRoles("MASTER_ADMIN", "ADMIN"),
-  deleteElectionBooth
+  removeBoothFromElection
 );
 
 export default router;
