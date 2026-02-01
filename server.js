@@ -7,6 +7,8 @@ import agentRoutes from "./routes/agent.js";
 import voterRoutes from "./routes/voter.js";
 import masterAdminRoutes from "./routes/masteradmin.js";
 import notificationRoutes from "./routes/notification.js";
+import wardRoutes from "./routes/ward.js";
+import electionBoothRoutes from "./routes/electionBooth.js";
 
 dotenv.config();
 
@@ -46,6 +48,8 @@ app.use("/agent", agentRoutes);
 app.use("/voter", voterRoutes);
 app.use("/masteradmin", masterAdminRoutes);
 app.use("/notifications", notificationRoutes);
+app.use("/api/wards", wardRoutes);
+app.use("/api/election-booths", electionBoothRoutes);
 
 const PORT = process.env.PORT || 3000;
 
