@@ -9,6 +9,8 @@ import masterAdminRoutes from "./routes/masteradmin.js";
 import notificationRoutes from "./routes/notification.js";
 import wardRoutes from "./routes/ward.js";
 import electionBoothRoutes from "./routes/electionBooth.js";
+import boothRoutes from "./routes/booths.js";
+
 
 dotenv.config();
 
@@ -50,6 +52,8 @@ app.use("/masteradmin", masterAdminRoutes);
 app.use("/notifications", notificationRoutes);
 app.use("/api/wards", wardRoutes);
 app.use("/api/election-booths", electionBoothRoutes);
+app.use("/api/booths", boothRoutes);
+
 
 const PORT = process.env.PORT || 3000;
 

@@ -13,13 +13,9 @@ const router = express.Router();
 
 /* =========================
    ELECTION BOOTH ALLOCATION
-   (Uses existing booths)
 ========================= */
 
-/**
- * Allocate multiple booths to an election
- * body: { election_id, booth_ids: [] }
- */
+// Allocate booths (bulk)
 router.post(
   "/allocate",
   authenticate,
@@ -27,30 +23,21 @@ router.post(
   allocateBoothsToElection
 );
 
-/**
- * Get all allocated booths for an election
- * query: ?election_id=
- */
+// Get allocated booths for election
 router.get(
   "/",
   authenticate,
   getElectionBoothsByElection
 );
 
-/**
- * Get allocated booths by ward
- * query: ?election_id=&ward_id=
- */
+// Get allocated booths by ward
 router.get(
   "/by-ward",
   authenticate,
   getElectionBoothsByWard
 );
 
-/**
- * Remove booth from election (un-allocate)
- * param: election_booth_id
- */
+// Remove booth from election
 router.delete(
   "/:id",
   authenticate,
