@@ -7,16 +7,51 @@ import {
   deleteWard
 } from "../controllers/wardController.js";
 
-import auth from "../middleware/auth.js";
-import roleCheck from "../middleware/roleCheck.js";
+import { authenticate } from "../middleware/auth.js";
+import { allowRoles } from "../middleware/roleCheck.js";
 
 const router = express.Router();
 
-// 🔐 Only MASTER_ADMIN / ADMIN should manage wards
-router.post("/", auth, roleCheck(["MASTER_ADMIN", "ADMIN"]), createWard);
-router.get("/", auth, getWardsByElection);
-router.get("/:id", auth, getWardById);
-router.put("/:id", auth, roleCheck(["MASTER_ADMIN", "ADMIN"]), updateWard);
-router.delete("/:id", auth, roleCheck(["MASTER_ADMIN", "ADMIN"]), deleteWard);
+/* =========================
+   WARD MANAGEMENT (Municipal)
+========================= */
+
+// Create ward
+router.post(
+  "/",
+  authenticate,
+  allowRoles("MASTER_ADMIN", "ADMIN"),
+  createWard
+);
+
+// Get wards by election
+router.get(
+  "/",
+  authenticate,
+  getWardsByElection
+);
+
+// Get single ward
+router.get(
+  "/:id",
+  authenticate,
+  getWardById
+);
+
+// Update ward
+router.put(
+  "/:id",
+  authenticate,
+  allowRoles("MASTER_ADMIN", "ADMIN"),
+  updateWard
+);
+
+// Delete ward
+router.delete(
+  "/:id",
+  authenticate,
+  allowRoles("MASTER_ADMIN", "ADMIN"),
+  deleteWard
+);
 
 export default router;
