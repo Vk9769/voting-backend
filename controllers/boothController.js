@@ -79,3 +79,60 @@ export const getBoothsForElection = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+/* =====================================================
+   GET AVAILABLE ACs FOR ELECTION (Assembly only)
+===================================================== */
+export const getACsForElection = async (req, res) => {
+  try {
+    const { election_id } = req.query;
+
+    if (!election_id) {
+      return res.status(400).json({ message: "election_id is required" });
+    }
+
+    // Get election scope
+    const electionRes = await pool.query(
+      `
+      SELECT state, district, election_type
+      FROM elections
+      WHERE id = $1
+      `,
+      [election_id]
+    );
+
+    if (!electionRes.rows.length) {
+      return res.status(404).json({ message: "Election not found" });
+    }
+
+    const { state, district, election_type } = electionRes.rows[0];
+
+    if (election_type !== "Assembly") {
+      return res.json([]);
+    }
+
+    const result = await pool.query(
+      `
+      SELECT DISTINCT b.ac_name_no
+      FROM booths b
+      WHERE b.state = $2
+        AND b.district = $3
+        AND b.ac_name_no IS NOT NULL
+        AND b.ac_name_no <> ''
+        AND b.id NOT IN (
+          SELECT booth_id
+          FROM election_booths
+          WHERE election_id = $1
+        )
+      ORDER BY b.ac_name_no
+      `,
+      [election_id, state, district]
+    );
+
+    res.json(result.rows.map(r => r.ac_name_no));
+
+  } catch (err) {
+    console.error("Get ACs error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

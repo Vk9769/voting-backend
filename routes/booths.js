@@ -23,4 +23,12 @@ router.get(
   getBoothsForElection
 );
 
+router.get(
+  "/acs-for-election",
+  authenticate,
+  allowRoles("MASTER_ADMIN", "ADMIN"),
+  getACsForElection
+);
+
+
 export default router;
