@@ -1,5 +1,9 @@
 import express from "express";
-import { getBoothsForElection } from "../controllers/boothController.js";
+import {
+  getBoothsForElection,
+  getACsForElection
+} from "../controllers/boothController.js";
+
 import { authenticate } from "../middleware/auth.js";
 import { allowRoles } from "../middleware/roleCheck.js";
 
