@@ -1,13 +1,15 @@
 import express from "express";
-import { createCandidate } from "../controllers/candidateController.js";
+import {
+  createCandidate,
+  listCandidates,
+  getCandidateById,
+  updateCandidate,
+  deleteCandidate
+} from "../controllers/candidateController.js";
+
 import { authenticate } from "../middleware/auth.js";
 import { allowRoles } from "../middleware/roleCheck.js";
 import { uploadCandidateAssets } from "../middleware/uploadProfilePhoto.js";
-import { listCandidates,
-            getCandidateById,
-            updateCandidate,
-            deleteCandidate
- } from "../controllers/candidateController.js";
 
 const router = express.Router();
 
@@ -42,6 +44,7 @@ router.get("/details/:id", authenticate, getCandidateById);
 router.put(
   "/update/:id",
   authenticate,
+  allowRoles("MASTER_ADMIN", "SUPER_ADMIN", "ADMIN"),
   uploadCandidateAssets.fields([
     { name: "candidate_photo", maxCount: 1 },
     { name: "party_symbol", maxCount: 1 },
@@ -49,7 +52,11 @@ router.put(
   updateCandidate
 );
 
-router.delete("/delete/:id", authenticate, deleteCandidate);
-
+router.delete(
+  "/delete/:id",
+  authenticate,
+  allowRoles("MASTER_ADMIN", "SUPER_ADMIN", "ADMIN"),
+  deleteCandidate
+);
 
 export default router;
