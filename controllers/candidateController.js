@@ -2,13 +2,29 @@ import { pool } from "../services/db.js";
 import bcrypt from "bcryptjs";
 
 /* =====================================================
-   CREATE CANDIDATE (UPGRADED)
+   CREATE CANDIDATE (S3 VERSION)
 ===================================================== */
 export const createCandidate = async (req, res) => {
   const client = await pool.connect();
 
   try {
     await client.query("BEGIN");
+
+    /* =========================
+       0️⃣ Extract Uploaded Files
+    ========================= */
+    const candidatePhotoKey =
+      req.files?.candidate_photo?.[0]?.key || null;
+
+    const partySymbolKey =
+      req.files?.party_symbol?.[0]?.key || null;
+
+    if (!candidatePhotoKey || !partySymbolKey) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        message: "Candidate photo and party symbol are required",
+      });
+    }
 
     const {
       election_id,
@@ -21,14 +37,14 @@ export const createCandidate = async (req, res) => {
       gender,
       age,
       party,
-      symbol,
       ward_id,
-      candidate_type
+      candidate_type,
     } = req.body;
 
     if (!election_id || !voter_id || !party) {
+      await client.query("ROLLBACK");
       return res.status(400).json({
-        message: "election_id, voter_id and party are required"
+        message: "election_id, voter_id and party are required",
       });
     }
 
@@ -54,7 +70,7 @@ export const createCandidate = async (req, res) => {
       if (!ward_id) {
         await client.query("ROLLBACK");
         return res.status(400).json({
-          message: "ward_id is required for Municipal elections"
+          message: "ward_id is required for Municipal elections",
         });
       }
 
@@ -66,7 +82,7 @@ export const createCandidate = async (req, res) => {
       if (!wardCheck.rows.length) {
         await client.query("ROLLBACK");
         return res.status(400).json({
-          message: "Invalid ward for this election"
+          message: "Invalid ward for this election",
         });
       }
     }
@@ -74,7 +90,8 @@ export const createCandidate = async (req, res) => {
     if (election_type === "Assembly" && ward_id) {
       await client.query("ROLLBACK");
       return res.status(400).json({
-        message: "ward_id should not be provided for Assembly elections"
+        message:
+          "ward_id should not be provided for Assembly elections",
       });
     }
 
@@ -94,7 +111,7 @@ export const createCandidate = async (req, res) => {
       if (!password) {
         await client.query("ROLLBACK");
         return res.status(400).json({
-          message: "Password required for new user"
+          message: "Password required for new user",
         });
       }
 
@@ -110,9 +127,10 @@ export const createCandidate = async (req, res) => {
           email,
           password,
           gender,
-          age
+          age,
+          profile_photo
         )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
         RETURNING id
         `,
         [
@@ -123,7 +141,8 @@ export const createCandidate = async (req, res) => {
           email,
           hashedPassword,
           gender,
-          age
+          age,
+          candidatePhotoKey, // 🔥 Store S3 key
         ]
       );
 
@@ -178,7 +197,8 @@ export const createCandidate = async (req, res) => {
     if (existingCandidate.rows.length) {
       await client.query("ROLLBACK");
       return res.status(400).json({
-        message: "User already registered as candidate in this election"
+        message:
+          "User already registered as candidate in this election",
       });
     }
 
@@ -201,16 +221,19 @@ export const createCandidate = async (req, res) => {
         user_id,
         election_id,
         party,
-        symbol,
+        partySymbolKey, // 🔥 store S3 key
         election_type === "Municipal" ? ward_id : null,
-        candidate_type || "party"
+        candidate_type || "party",
       ]
     );
 
     await client.query("COMMIT");
 
-    res.json({ message: "Candidate created successfully" });
-
+    res.json({
+      message: "Candidate created successfully",
+      candidate_photo: candidatePhotoKey,
+      party_symbol: partySymbolKey,
+    });
   } catch (err) {
     await client.query("ROLLBACK");
     console.error("Create candidate error:", err);

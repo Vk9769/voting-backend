@@ -77,3 +77,27 @@ export const uploadAgentCreatePhoto = multer({
     },
   }),
 });
+export const uploadCandidateAssets = multer({
+  storage: multerS3({
+    s3,
+    bucket: BUCKET,
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    key: (req, file, cb) => {
+      const ext = file.originalname.split(".").pop().toLowerCase();
+      const timestamp = Date.now();
+
+      let folder = "candidate";
+
+      if (file.fieldname === "candidate_photo") {
+        cb(null, `candidate-photos/${timestamp}.${ext}`);
+      } else if (file.fieldname === "party_symbol") {
+        cb(null, `party-symbols/${timestamp}.${ext}`);
+      } else {
+        cb(new Error("Invalid file field"));
+      }
+    },
+  }),
+  limits: {
+    fileSize: 2 * 1024 * 1024,
+  },
+});
