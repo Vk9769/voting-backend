@@ -1,5 +1,5 @@
 import { pool } from "../services/db.js";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 /* =====================================================
    CREATE CANDIDATE (UPGRADED)
