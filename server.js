@@ -10,7 +10,8 @@ import notificationRoutes from "./routes/notification.js";
 import wardRoutes from "./routes/ward.js";
 import electionBoothRoutes from "./routes/electionBooth.js";
 import boothRoutes from "./routes/booths.js";
-
+import candidateRoutes from "./routes/candidate.js";   // ✅ NEW
+import commonRoutes from "./routes/common.js";         // ✅ NEW
 
 dotenv.config();
 
@@ -25,13 +26,12 @@ app.use(cors({
   allowedHeaders: ["Authorization", "Content-Type", "Accept"],
 }));
 
-// 🔥 THIS IS NON-NEGOTIABLE FOR FLUTTER WEB
 app.options("*", (req, res) => {
   res.sendStatus(200);
 });
 
 /* =========================
-   BODY PARSER (AFTER CORS)
+   BODY PARSER
 ========================= */
 app.use(express.json());
 
@@ -45,15 +45,26 @@ app.get("/health", (req, res) => {
 /* =========================
    ROUTES
 ========================= */
+
+// 🔐 Auth
 app.use("/auth", authRoutes);
+
+// 👥 Role Based
 app.use("/agent", agentRoutes);
 app.use("/voter", voterRoutes);
+app.use("/candidate", candidateRoutes); // ✅ NEW
 app.use("/masteradmin", masterAdminRoutes);
+
+// 🔔 Notifications
 app.use("/notifications", notificationRoutes);
+
+// 🏛 Election Core
 app.use("/api/wards", wardRoutes);
 app.use("/api/election-booths", electionBoothRoutes);
 app.use("/api/booths", boothRoutes);
 
+// 🌍 Shared APIs (for all roles)
+app.use("/api/common", commonRoutes); // ✅ NEW
 
 const PORT = process.env.PORT || 3000;
 
