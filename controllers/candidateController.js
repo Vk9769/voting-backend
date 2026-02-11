@@ -1,8 +1,9 @@
 import { pool } from "../services/db.js";
 import bcrypt from "bcryptjs";
+import { getSignedImageUrl } from "../services/s3.js";
 
 /* =====================================================
-   CREATE CANDIDATE (S3 VERSION)
+   CREATE CANDIDATE (FINAL CLEAN S3 VERSION)
 ===================================================== */
 export const createCandidate = async (req, res) => {
   const client = await pool.connect();
@@ -63,10 +64,16 @@ export const createCandidate = async (req, res) => {
 
     const { election_type } = electionRes.rows[0];
 
+    const isMunicipal =
+      election_type.toLowerCase().includes("municipal");
+
+    const isAssembly =
+      election_type.toLowerCase().includes("assembly");
+
     /* =========================
-       2️⃣ Validate Ward (Municipal Only)
+       2️⃣ Validate Ward
     ========================= */
-    if (election_type === "Municipal") {
+    if (isMunicipal) {
       if (!ward_id) {
         await client.query("ROLLBACK");
         return res.status(400).json({
@@ -87,7 +94,7 @@ export const createCandidate = async (req, res) => {
       }
     }
 
-    if (election_type === "Assembly" && ward_id) {
+    if (isAssembly && ward_id) {
       await client.query("ROLLBACK");
       return res.status(400).json({
         message:
@@ -107,6 +114,29 @@ export const createCandidate = async (req, res) => {
 
     if (userRes.rows.length) {
       user_id = userRes.rows[0].id;
+
+      // 🔥 Update basic details ONLY (not profile_photo)
+      await client.query(
+        `
+        UPDATE users
+        SET first_name = $1,
+            last_name = $2,
+            phone = $3,
+            email = $4,
+            gender = $5,
+            age = $6
+        WHERE id = $7
+        `,
+        [
+          first_name,
+          last_name,
+          phone,
+          email,
+          gender,
+          age,
+          user_id,
+        ]
+      );
     } else {
       if (!password) {
         await client.query("ROLLBACK");
@@ -127,10 +157,9 @@ export const createCandidate = async (req, res) => {
           email,
           password,
           gender,
-          age,
-          profile_photo
+          age
         )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
         RETURNING id
         `,
         [
@@ -142,13 +171,12 @@ export const createCandidate = async (req, res) => {
           hashedPassword,
           gender,
           age,
-          candidatePhotoKey, // 🔥 Store S3 key
         ]
       );
 
       user_id = newUser.rows[0].id;
 
-      /* Assign VOTER role */
+      // Assign VOTER role
       const voterRole = await client.query(
         `SELECT id FROM roles WHERE name = 'VOTER'`
       );
@@ -203,7 +231,7 @@ export const createCandidate = async (req, res) => {
     }
 
     /* =========================
-       6️⃣ Insert Candidate
+       6️⃣ Insert Candidate (CORRECTED)
     ========================= */
     await client.query(
       `
@@ -212,17 +240,19 @@ export const createCandidate = async (req, res) => {
         election_id,
         party,
         symbol,
+        candidate_photo,
         ward_id,
         candidate_type
       )
-      VALUES ($1,$2,$3,$4,$5,$6)
+      VALUES ($1,$2,$3,$4,$5,$6,$7)
       `,
       [
         user_id,
         election_id,
         party,
-        partySymbolKey, // 🔥 store S3 key
-        election_type === "Municipal" ? ward_id : null,
+        partySymbolKey,
+        candidatePhotoKey,
+        isMunicipal ? ward_id : null,
         candidate_type || "party",
       ]
     );
@@ -240,5 +270,56 @@ export const createCandidate = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   } finally {
     client.release();
+  }
+};
+
+/* =====================================================
+   LIST CANDIDATES WITH SIGNED URLS
+===================================================== */
+export const listCandidates = async (req, res) => {
+  try {
+    const { election_id } = req.params;
+
+    const result = await pool.query(
+      `
+      SELECT 
+        c.id,
+        c.party,
+        c.symbol,
+        c.candidate_photo,
+        c.nomination_status,
+        c.ward_id,
+        u.first_name,
+        u.last_name
+      FROM candidates c
+      JOIN users u ON u.id = c.user_id
+      WHERE c.election_id = $1
+      ORDER BY c.id DESC
+      `,
+      [election_id]
+    );
+
+    const candidates = await Promise.all(
+      result.rows.map(async (candidate) => {
+        const photoUrl = candidate.candidate_photo
+          ? await getSignedImageUrl(candidate.candidate_photo)
+          : null;
+
+        const symbolUrl = candidate.symbol
+          ? await getSignedImageUrl(candidate.symbol)
+          : null;
+
+        return {
+          ...candidate,
+          candidate_photo_url: photoUrl,
+          party_symbol_url: symbolUrl,
+        };
+      })
+    );
+
+    res.json(candidates);
+  } catch (err) {
+    console.error("List candidates error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
