@@ -1,7 +1,7 @@
 import express from "express";
 import { createCandidate } from "../controllers/candidateController.js";
-import { authMiddleware } from "../middleware/auth.js";
-import { roleCheck } from "../middleware/roleCheck.js";
+import { authenticate } from "../middleware/auth.js";
+import { allowRoles } from "../middleware/roleCheck.js";
 
 const router = express.Router();
 
@@ -15,12 +15,8 @@ const router = express.Router();
 
 router.post(
   "/create",
-  authMiddleware,
-  roleCheck([
-    "MASTER_ADMIN",
-    "SUPER_ADMIN",
-    "ADMIN"
-  ]),
+  authenticate,
+  allowRoles("MASTER_ADMIN", "SUPER_ADMIN", "ADMIN"),
   createCandidate
 );
 
