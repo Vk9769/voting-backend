@@ -469,12 +469,21 @@ export const updateCandidate = async (req, res) => {
     if (nomination_status === "approved") {
       approved_by = req.user.userId;
       approved_at = new Date();
+
+      // 🔥 clear rejection fields
+      rejected_by = null;
+      rejected_at = null;
     }
 
     if (nomination_status === "rejected") {
       rejected_by = req.user.userId;
       rejected_at = new Date();
+
+      // 🔥 clear approval fields
+      approved_by = null;
+      approved_at = null;
     }
+
 
 
     await client.query(
@@ -483,10 +492,10 @@ export const updateCandidate = async (req, res) => {
       SET party = COALESCE($1, party),
           ward_id = COALESCE($2, ward_id),
           nomination_status = COALESCE($3, nomination_status),
-          approved_by = COALESCE($4, approved_by),
-          approved_at = COALESCE($5, approved_at),
-          rejected_by = COALESCE($6, rejected_by),
-          rejected_at = COALESCE($7, rejected_at)
+          approved_by = $4,
+          approved_at = $5,
+          rejected_by = $6,
+          rejected_at = $7
       WHERE id = $8
       `,
       [
