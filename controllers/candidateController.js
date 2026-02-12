@@ -335,6 +335,8 @@ export const getCandidateById = async (req, res) => {
       `
         SELECT 
         c.*,
+        u.voter_id,
+        u.gov_id_no,
         u.first_name,
         u.last_name,
         u.phone,
