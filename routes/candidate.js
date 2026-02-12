@@ -62,7 +62,7 @@ router.delete(
 
 router.get(
   "/counts/:election_id",
-  authenticateToken,
+  authenticate,
   getCandidateCountsByElection
 );
 
