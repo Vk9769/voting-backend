@@ -333,17 +333,23 @@ export const getCandidateById = async (req, res) => {
 
     const result = await pool.query(
       `
-      SELECT 
-        c.*,
-        u.first_name,
-        u.last_name,
-        u.phone,
-        u.email,
-        u.gender,
-        u.age
-      FROM candidates c
-      JOIN users u ON u.id = c.user_id
-      WHERE c.id = $1
+        SELECT 
+          c.*,
+          u.first_name,
+          u.last_name,
+          u.phone,
+          u.email,
+          u.gender,
+          u.age,
+          approver.first_name AS approved_by_name,
+          approver.last_name AS approved_by_last,
+          rejector.first_name AS rejected_by_name,
+          rejector.last_name AS rejected_by_last
+        FROM candidates c
+        JOIN users u ON u.id = c.user_id
+        LEFT JOIN users approver ON approver.id = c.approved_by
+        LEFT JOIN users rejector ON rejector.id = c.rejected_by
+        WHERE c.id = $1
       `,
       [id]
     );
@@ -395,14 +401,10 @@ export const updateCandidate = async (req, res) => {
       nomination_status
     } = req.body;
 
-    const candidatePhotoKey =
-      req.files?.candidate_photo?.[0]?.key || null;
-
-    const partySymbolKey =
-      req.files?.party_symbol?.[0]?.key || null;
-
     const candidateRes = await client.query(
-      `SELECT user_id FROM candidates WHERE id = $1`,
+      `SELECT user_id, nomination_status 
+       FROM candidates 
+       WHERE id = $1`,
       [id]
     );
 
@@ -411,40 +413,82 @@ export const updateCandidate = async (req, res) => {
       return res.status(404).json({ message: "Candidate not found" });
     }
 
-    const user_id = candidateRes.rows[0].user_id;
+    const { user_id, nomination_status: currentStatus } =
+      candidateRes.rows[0];
 
-    // Update user table
+    /* 🔒 LOCK AFTER APPROVAL */
+    if (currentStatus === "approved" && !nomination_status) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        message: "Approved candidate cannot be edited",
+      });
+    }
+
+    /* =============================
+       UPDATE USER SAFELY
+    ============================== */
+
     await client.query(
       `
       UPDATE users
-      SET first_name=$1,
-          last_name=$2,
-          phone=$3,
-          email=$4,
-          gender=$5,
-          age=$6
-      WHERE id=$7
+      SET first_name = COALESCE($1, first_name),
+          last_name  = COALESCE($2, last_name),
+          phone      = COALESCE($3, phone),
+          email      = COALESCE($4, email),
+          gender     = COALESCE($5, gender),
+          age        = COALESCE($6, age)
+      WHERE id = $7
       `,
-      [first_name, last_name, phone, email, gender, age, user_id]
+      [
+        first_name || null,
+        last_name || null,
+        phone || null,
+        email || null,
+        gender || null,
+        age || null,
+        user_id
+      ]
     );
 
-    // Update candidate table
+    /* =============================
+       HANDLE APPROVAL / REJECTION
+    ============================== */
+
+    let approved_by = null;
+    let approved_at = null;
+    let rejected_by = null;
+    let rejected_at = null;
+
+    if (nomination_status === "approved") {
+      approved_by = req.user.id; // from auth middleware
+      approved_at = new Date();
+    }
+
+    if (nomination_status === "rejected") {
+      rejected_by = req.user.id;
+      rejected_at = new Date();
+    }
+
     await client.query(
       `
       UPDATE candidates
-      SET party=$1,
-          ward_id=$2,
-          nomination_status=$3,
-          symbol = COALESCE($4, symbol),
-          candidate_photo = COALESCE($5, candidate_photo)
-      WHERE id=$6
+      SET party = COALESCE($1, party),
+          ward_id = COALESCE($2, ward_id),
+          nomination_status = COALESCE($3, nomination_status),
+          approved_by = COALESCE($4, approved_by),
+          approved_at = COALESCE($5, approved_at),
+          rejected_by = COALESCE($6, rejected_by),
+          rejected_at = COALESCE($7, rejected_at)
+      WHERE id = $8
       `,
       [
-        party,
+        party || null,
         ward_id || null,
-        nomination_status,
-        partySymbolKey,
-        candidatePhotoKey,
+        nomination_status || null,
+        approved_by,
+        approved_at,
+        rejected_by,
+        rejected_at,
         id
       ]
     );
