@@ -596,3 +596,30 @@ export const deleteCandidate = async (req, res) => {
     client.release();
   }
 };
+/* =====================================================
+   GET CANDIDATE COUNT BY ELECTION
+===================================================== */
+export const getCandidateCountsByElection = async (req, res) => {
+  try {
+    const { election_id } = req.params;
+
+    const result = await pool.query(
+      `
+      SELECT
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE nomination_status = 'approved')::int AS approved,
+        COUNT(*) FILTER (WHERE nomination_status = 'pending')::int AS pending,
+        COUNT(*) FILTER (WHERE nomination_status = 'rejected')::int AS rejected
+      FROM candidates
+      WHERE election_id = $1
+      `,
+      [election_id]
+    );
+
+    res.json(result.rows[0]);
+
+  } catch (err) {
+    console.error("Candidate count error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

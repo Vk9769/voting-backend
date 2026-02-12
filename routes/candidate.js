@@ -4,7 +4,8 @@ import {
   listCandidates,
   getCandidateById,
   updateCandidate,
-  deleteCandidate
+  deleteCandidate,
+  getCandidateCountsByElection
 } from "../controllers/candidateController.js";
 
 import { authenticate } from "../middleware/auth.js";
@@ -57,6 +58,12 @@ router.delete(
   authenticate,
   allowRoles("MASTER_ADMIN", "SUPER_ADMIN", "ADMIN"),
   deleteCandidate
+);
+
+router.get(
+  "/counts/:election_id",
+  authenticateToken,
+  getCandidateCountsByElection
 );
 
 export default router;
