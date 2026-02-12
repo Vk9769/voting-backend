@@ -334,19 +334,24 @@ export const getCandidateById = async (req, res) => {
     const result = await pool.query(
       `
         SELECT 
-          c.*,
-          u.first_name,
-          u.last_name,
-          u.phone,
-          u.email,
-          u.gender,
-          u.age,
-          approver.first_name AS approved_by_name,
-          approver.last_name AS approved_by_last,
-          rejector.first_name AS rejected_by_name,
-          rejector.last_name AS rejected_by_last
+        c.*,
+        u.first_name,
+        u.last_name,
+        u.phone,
+        u.email,
+        u.gender,
+        u.age,
+        e.election_type,
+        e.constituency,
+        w.ward_name,
+        approver.first_name AS approved_by_name,
+        approver.last_name AS approved_by_last,
+        rejector.first_name AS rejected_by_name,
+        rejector.last_name AS rejected_by_last
         FROM candidates c
         JOIN users u ON u.id = c.user_id
+        JOIN elections e ON e.id = c.election_id
+        LEFT JOIN wards w ON w.id = c.ward_id
         LEFT JOIN users approver ON approver.id = c.approved_by
         LEFT JOIN users rejector ON rejector.id = c.rejected_by
         WHERE c.id = $1
