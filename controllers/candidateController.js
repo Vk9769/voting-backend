@@ -525,6 +525,9 @@ export const deleteCandidate = async (req, res) => {
 
     await client.query("BEGIN");
 
+    /* ================================
+       1️⃣ Get Candidate + User
+    ================================= */
     const result = await client.query(
       `SELECT user_id, nomination_status 
        FROM candidates 
@@ -537,17 +540,40 @@ export const deleteCandidate = async (req, res) => {
       return res.status(404).json({ message: "Candidate not found" });
     }
 
-    if (result.rows[0].nomination_status === "approved") {
+    const { user_id, nomination_status } = result.rows[0];
+
+    /* 🔒 Prevent deleting approved candidate */
+    if (nomination_status === "approved") {
       await client.query("ROLLBACK");
       return res.status(400).json({
         message: "Approved candidate cannot be deleted",
       });
     }
 
+    /* ================================
+       2️⃣ Delete Candidate Record
+    ================================= */
     await client.query(
       `DELETE FROM candidates WHERE id = $1`,
       [id]
     );
+
+    /* ================================
+       3️⃣ Remove CANDIDATE role ONLY
+    ================================= */
+    const candidateRole = await client.query(
+      `SELECT id FROM roles WHERE name = 'CANDIDATE'`
+    );
+
+    if (candidateRole.rows.length) {
+      const roleId = candidateRole.rows[0].id;
+
+      await client.query(
+        `DELETE FROM user_roles 
+         WHERE user_id = $1 AND role_id = $2`,
+        [user_id, roleId]
+      );
+    }
 
     await client.query("COMMIT");
 
