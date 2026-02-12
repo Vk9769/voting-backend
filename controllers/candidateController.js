@@ -460,14 +460,15 @@ export const updateCandidate = async (req, res) => {
     let rejected_at = null;
 
     if (nomination_status === "approved") {
-      approved_by = req.user.id; // from auth middleware
+      approved_by = req.user.userId;
       approved_at = new Date();
     }
 
     if (nomination_status === "rejected") {
-      rejected_by = req.user.id;
+      rejected_by = req.user.userId;
       rejected_at = new Date();
     }
+
 
     await client.query(
       `
