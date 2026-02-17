@@ -192,6 +192,23 @@ export const createAgent = async (req, res) => {
       throw new Error("Agent already assigned in this election");
     }
 
+    if (isMunicipal) {
+      const verifyBooth = await client.query(
+        `
+    SELECT id FROM election_booths
+    WHERE election_id = $1
+      AND booth_id = $2
+      AND ward_id = $3
+    `,
+        [electionId, boothId, ward_id]
+      );
+
+      if (!verifyBooth.rows.length) {
+        throw new Error("Invalid booth for this municipal election/ward");
+      }
+    }
+
+
     /* =========================
        5️⃣ Insert Agent Assignment
     ========================= */
@@ -202,22 +219,15 @@ export const createAgent = async (req, res) => {
     agent_id,
     election_id,
     booth_id,
-    election_booth_id,
     ward_id,
     assigned_at
   )
-  VALUES ($1,$2,$3,$4,$5,NOW())
+  VALUES ($1,$2,$3,$4,NOW())
   `,
       [
         userId,
         electionId,
-
-        // 🔥 Always fill booth_id (permanent reference)
-        boothId,
-
-        // 🔥 For municipal use election_booth_id
-        isMunicipal ? boothId : null,
-
+        boothId,                         // ✅ ALWAYS booth_id
         isMunicipal ? ward_id : null
       ]
     );
