@@ -23,11 +23,6 @@ const parseDOB = (dob) => {
    CREATE AGENT
 ========================= */
 export const createAgent = async (req, res) => {
-
-  console.log("🟢 CREATE AGENT REQUEST");
-  console.log("REQ BODY:", req.body);
-  console.log("REQ FILE:", req.file?.location);
-
   const client = await pool.connect();
 
   try {
@@ -47,49 +42,61 @@ export const createAgent = async (req, res) => {
       electionId,
       idType,
       idNumber,
+      ward_id
     } = req.body;
 
-    if (!voterId) {
-      throw new Error("voterId missing from request body");
+    if (!voterId || !electionId || !boothId) {
+      throw new Error("voterId, electionId and boothId are required");
     }
-
-
-    if (!boothId || !electionId) {
-      throw new Error("Booth and Election are required");
-    }
-
-    const dobParsed = parseDOB(dob);
 
     /* =========================
-       1️⃣ CHECK USER
+       1️⃣ Validate Election
     ========================= */
-    const { rows } = await client.query(
-      `SELECT id, profile_photo FROM users WHERE voter_id = $1`,
+    const electionRes = await client.query(
+      `SELECT id, election_type FROM elections WHERE id = $1`,
+      [electionId]
+    );
+
+    if (!electionRes.rows.length) {
+      throw new Error("Election not found");
+    }
+
+    const { election_type } = electionRes.rows[0];
+
+    const isMunicipal =
+      election_type.toLowerCase().includes("municipal");
+
+    const isAssembly =
+      election_type.toLowerCase().includes("assembly");
+
+    /* =========================
+       2️⃣ Check Existing User
+    ========================= */
+    let userRes = await client.query(
+      `SELECT id FROM users WHERE voter_id = $1`,
       [voterId]
     );
 
     let userId;
-    let isNewUser = false;
-    let userProfilePhoto = null;
+    const dobParsed = parseDOB(dob);
 
-    if (rows.length) {
-      // 🔁 EXISTING VOTER
-      userId = rows[0].id;
-      userProfilePhoto = rows[0].profile_photo;
+    if (userRes.rows.length) {
+      // Existing User
+      userId = userRes.rows[0].id;
 
       await client.query(
         `
-        UPDATE users SET
-          first_name = COALESCE($1, first_name),
-          last_name  = COALESCE($2, last_name),
-          phone      = COALESCE($3, phone),
-          email      = COALESCE($4, email),
-          gender     = COALESCE($5, gender),
-          date_of_birth = COALESCE($6, date_of_birth),
-          address    = COALESCE($7, address),
-          gov_id_type = COALESCE($8, gov_id_type),
-          gov_id_no   = COALESCE($9, gov_id_no),
-          permanent_booth_id = $10
+        UPDATE users
+        SET first_name = COALESCE($1, first_name),
+            last_name = COALESCE($2, last_name),
+            phone = COALESCE($3, phone),
+            email = COALESCE($4, email),
+            gender = COALESCE($5, gender),
+            date_of_birth = COALESCE($6, date_of_birth),
+            address = COALESCE($7, address),
+            gov_id_type = COALESCE($8, gov_id_type),
+            gov_id_no = COALESCE($9, gov_id_no),
+            permanent_booth_id = $10
         WHERE id = $11
         `,
         [
@@ -103,15 +110,13 @@ export const createAgent = async (req, res) => {
           idType || "Aadhaar",
           idNumber,
           boothId,
-          userId,
+          userId
         ]
       );
     } else {
-      // 🆕 NEW VOTER
-      isNewUser = true;
-
+      // New User
       if (!password) {
-        throw new Error("Password required for new voter");
+        throw new Error("Password required for new user");
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -130,11 +135,10 @@ export const createAgent = async (req, res) => {
           address,
           gov_id_type,
           gov_id_no,
-          permanent_booth_id,
-          profile_photo
+          permanent_booth_id
         )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-        RETURNING id, profile_photo
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+        RETURNING id
         `,
         [
           voterId,
@@ -148,118 +152,86 @@ export const createAgent = async (req, res) => {
           address,
           idType || "Aadhaar",
           idNumber,
-          boothId,
-          req.file?.location || null,
+          boothId
         ]
       );
 
       userId = insert.rows[0].id;
-      userProfilePhoto = insert.rows[0].profile_photo;
     }
 
     /* =========================
-       2️⃣ UPDATE USER PHOTO IF UPLOADED
+       3️⃣ Assign Roles
     ========================= */
-    if (req.file?.location) {
+    const roles = await client.query(
+      `SELECT id FROM roles WHERE name IN ('VOTER','AGENT')`
+    );
+
+    for (let role of roles.rows) {
       await client.query(
-        `UPDATE users SET profile_photo = $1 WHERE id = $2`,
-        [req.file.location, userId]
+        `
+        INSERT INTO user_roles (user_id, role_id)
+        VALUES ($1,$2)
+        ON CONFLICT DO NOTHING
+        `,
+        [userId, role.id]
       );
-      userProfilePhoto = req.file.location;
     }
 
     /* =========================
-       3️⃣ ENSURE ROLES
+       4️⃣ Prevent Duplicate Agent
     ========================= */
-    await client.query(
-      `
-      INSERT INTO user_roles (user_id, role_id)
-      SELECT $1, id FROM roles WHERE name = 'VOTER'
-      ON CONFLICT DO NOTHING
-      `,
-      [userId]
-    );
-
-    await client.query(
-      `
-      INSERT INTO user_roles (user_id, role_id)
-      SELECT $1, id FROM roles WHERE name = 'AGENT'
-      ON CONFLICT DO NOTHING
-      `,
-      [userId]
-    );
-
-    /* =========================
-   4️⃣ ASSIGN / REASSIGN AGENT (SAFE)
-========================= */
-
-    // 🔎 Check if agent already exists
     const existingAgent = await client.query(
-      `SELECT id FROM election_agents WHERE agent_id = $1`,
-      [userId]
+      `
+      SELECT id FROM election_agents
+      WHERE agent_id = $1 AND election_id = $2
+      `,
+      [userId, electionId]
     );
 
     if (existingAgent.rows.length) {
-      // 🔁 UPDATE EXISTING AGENT ASSIGNMENT
-      await client.query(
-        `
-    UPDATE election_agents
-    SET
-      election_id = $1,
-      booth_id = $2,
-      profile_photo = COALESCE($3, profile_photo),
-      assigned_at = NOW()
-    WHERE agent_id = $4
-    `,
-        [
-          electionId,
-          boothId,
-          userProfilePhoto,
-          userId,
-        ]
-      );
-    } else {
-      // 🆕 INSERT NEW AGENT ASSIGNMENT
-      await client.query(
-        `
-    INSERT INTO election_agents (
-      agent_id,
-      election_id,
-      booth_id,
-      profile_photo
-    )
-    VALUES ($1,$2,$3,$4)
-    `,
-        [
-          userId,
-          electionId,
-          boothId,
-          userProfilePhoto,
-        ]
-      );
+      throw new Error("Agent already assigned in this election");
     }
+
+    /* =========================
+       5️⃣ Insert Agent Assignment
+    ========================= */
+
+    await client.query(
+      `
+      INSERT INTO election_agents (
+        agent_id,
+        election_id,
+        booth_id,
+        ward_id,
+        assigned_at
+      )
+      VALUES ($1,$2,$3,$4,NOW())
+      `,
+      [
+        userId,
+        electionId,
+        isAssembly ? boothId : null,
+        isMunicipal ? ward_id : null
+      ]
+    );
 
     await client.query("COMMIT");
 
     res.json({
       success: true,
-      message: isNewUser
-        ? "New voter created and assigned as agent"
-        : "Existing voter assigned as agent",
-      userId,
-      electionId,
-      boothId,
+      message: userRes.rows.length
+        ? "Existing voter assigned as agent"
+        : "New voter created and assigned as agent"
     });
 
   } catch (err) {
     await client.query("ROLLBACK");
-    console.error("❌ Create agent error:", err);
-    res.status(500).json({ success: false, message: err.message });
+    console.error("Create Agent Error:", err);
+    res.status(500).json({ message: err.message });
   } finally {
     client.release();
   }
 };
-
 
 
 /* =========================
