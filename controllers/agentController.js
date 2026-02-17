@@ -198,22 +198,30 @@ export const createAgent = async (req, res) => {
 
     await client.query(
       `
-      INSERT INTO election_agents (
-        agent_id,
-        election_id,
-        booth_id,
-        ward_id,
-        assigned_at
-      )
-      VALUES ($1,$2,$3,$4,NOW())
-      `,
+  INSERT INTO election_agents (
+    agent_id,
+    election_id,
+    booth_id,
+    election_booth_id,
+    ward_id,
+    assigned_at
+  )
+  VALUES ($1,$2,$3,$4,$5,NOW())
+  `,
       [
         userId,
         electionId,
-        isAssembly ? boothId : null,
+
+        // 🔥 Always fill booth_id (permanent reference)
+        boothId,
+
+        // 🔥 For municipal use election_booth_id
+        isMunicipal ? boothId : null,
+
         isMunicipal ? ward_id : null
       ]
     );
+
 
     await client.query("COMMIT");
 
