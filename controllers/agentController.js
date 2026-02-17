@@ -544,3 +544,81 @@ export const markVoter = async (req, res) => {
     client.release();
   }
 };
+
+/* =========================
+   LIST AGENTS (ADMIN)
+========================= */
+export const listAgents = async (req, res) => {
+  try {
+    const { election_id, area_type, ward_id, assembly } = req.query;
+
+    if (!election_id || !area_type) {
+      return res.status(400).json({
+        message: "election_id and area_type are required"
+      });
+    }
+
+    let query = `
+      SELECT
+        ea.id,
+        ea.agent_id,
+        ea.election_id,
+        ea.booth_id,
+        ea.ward_id,
+        ea.profile_photo,
+
+        u.first_name,
+        u.last_name,
+        u.phone,
+        u.email,
+        u.gender,
+        u.date_of_birth,
+
+        b.name AS booth_name,
+        b.ac_name_no,
+        b.state,
+        b.district
+
+      FROM election_agents ea
+      JOIN users u ON u.id = ea.agent_id
+      JOIN booths b ON b.id = ea.booth_id
+
+      WHERE ea.election_id = $1
+    `;
+
+    const params = [election_id];
+    let paramIndex = 2;
+
+    /* =========================
+       🏛 ASSEMBLY FILTER
+    ========================= */
+    if (area_type === "AC") {
+      if (assembly) {
+        query += ` AND b.ac_name_no = $${paramIndex}`;
+        params.push(assembly);
+        paramIndex++;
+      }
+    }
+
+    /* =========================
+       🏘 MUNICIPAL FILTER
+    ========================= */
+    if (area_type === "WARD") {
+      if (ward_id) {
+        query += ` AND ea.ward_id = $${paramIndex}`;
+        params.push(ward_id);
+        paramIndex++;
+      }
+    }
+
+    query += ` ORDER BY u.first_name ASC`;
+
+    const result = await pool.query(query, params);
+
+    res.json(result.rows);
+
+  } catch (err) {
+    console.error("List agents error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

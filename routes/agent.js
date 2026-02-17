@@ -14,6 +14,7 @@ import {
   uploadAgentPhoto,
   getAgentVoters,
   markVoter,
+  listAgents 
 } from "../controllers/agentController.js";
 
 const router = express.Router();
@@ -67,5 +68,13 @@ router.post(
   allowRoles("AGENT"),
   markVoter
 );
+
+router.get(
+  "/list",
+  authenticate,
+  allowRoles("ADMIN", "SUPER_ADMIN", "MASTER_ADMIN"),
+  listAgents
+);
+
 
 export default router;
