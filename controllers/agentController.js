@@ -622,3 +622,52 @@ export const listAgents = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+/* =========================
+   GET AGENT BY ID (ADMIN)
+========================= */
+export const getAgentById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      `
+      SELECT
+        ea.id,
+        ea.election_id,
+        ea.booth_id,
+        ea.ward_id,
+        ea.profile_photo,
+
+        u.id AS user_id,
+        u.voter_id,
+        u.first_name,
+        u.last_name,
+        u.phone,
+        u.email,
+        u.gender,
+        u.date_of_birth,
+        u.address,
+        u.gov_id_no,
+        u.gov_id_type
+
+      FROM election_agents ea
+      JOIN users u ON u.id = ea.agent_id
+      WHERE ea.id = $1
+      `,
+      [id]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({ message: "Agent not found" });
+    }
+
+    const agent = result.rows[0];
+
+    res.json(agent);
+
+  } catch (err) {
+    console.error("Get agent by id error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
