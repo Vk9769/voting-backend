@@ -638,6 +638,19 @@ export const getAgentById = async (req, res) => {
         ea.booth_id,
         ea.ward_id,
         ea.profile_photo,
+        ea.nomination_status,
+        ea.assigned_at,
+
+        e.election_name,
+        e.election_type,
+
+        b.name AS booth_name,
+        b.address AS booth_address,
+        b.state,
+        b.district,
+        b.ac_name_no,
+
+        w.ward_name,
 
         u.id AS user_id,
         u.voter_id,
@@ -653,6 +666,10 @@ export const getAgentById = async (req, res) => {
 
       FROM election_agents ea
       JOIN users u ON u.id = ea.agent_id
+      JOIN elections e ON e.id = ea.election_id
+      JOIN booths b ON b.id = ea.booth_id
+      LEFT JOIN wards w ON w.id = ea.ward_id
+
       WHERE ea.id = $1
       `,
       [id]
@@ -662,9 +679,7 @@ export const getAgentById = async (req, res) => {
       return res.status(404).json({ message: "Agent not found" });
     }
 
-    const agent = result.rows[0];
-
-    res.json(agent);
+    res.json(result.rows[0]);
 
   } catch (err) {
     console.error("Get agent by id error:", err);
