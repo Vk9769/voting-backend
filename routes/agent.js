@@ -15,7 +15,8 @@ import {
   getAgentVoters,
   markVoter,
   listAgents,
-  getAgentById  
+  getAgentById,
+  getAgentCounts   
 } from "../controllers/agentController.js";
 
 const router = express.Router();
@@ -83,4 +84,12 @@ router.get(
   allowRoles("ADMIN", "SUPER_ADMIN", "MASTER_ADMIN"),
   getAgentById
 );
+
+router.get(
+  "/counts/:electionId",
+  authenticate,
+  allowRoles("ADMIN", "SUPER_ADMIN", "MASTER_ADMIN"),
+  getAgentCounts
+);
+
 export default router;

@@ -671,3 +671,44 @@ export const getAgentById = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+/* =========================
+   AGENT COUNTS (ADMIN)
+========================= */
+export const getAgentCounts = async (req, res) => {
+  try {
+    const { electionId } = req.params;
+
+    if (!electionId) {
+      return res.status(400).json({
+        message: "electionId is required"
+      });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT
+        COUNT(*) AS total,
+        COUNT(*) FILTER (WHERE nomination_status = 'approved') AS approved,
+        COUNT(*) FILTER (WHERE nomination_status = 'pending') AS pending,
+        COUNT(*) FILTER (WHERE nomination_status = 'rejected') AS rejected
+      FROM election_agents
+      WHERE election_id = $1
+      `,
+      [electionId]
+    );
+
+    const counts = result.rows[0];
+
+    res.json({
+      total: parseInt(counts.total),
+      approved: parseInt(counts.approved),
+      pending: parseInt(counts.pending),
+      rejected: parseInt(counts.rejected)
+    });
+
+  } catch (err) {
+    console.error("Agent count error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
