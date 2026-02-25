@@ -79,17 +79,17 @@ router.get(
 );
 
 router.get(
-  "/:id",
-  authenticate,
-  allowRoles("ADMIN", "SUPER_ADMIN", "MASTER_ADMIN"),
-  getAgentById
-);
-
-router.get(
   "/counts/:electionId",
   authenticate,
   allowRoles("ADMIN", "SUPER_ADMIN", "MASTER_ADMIN"),
   getAgentCounts
+);
+
+router.get(
+  "/:id",
+  authenticate,
+  allowRoles("ADMIN", "SUPER_ADMIN", "MASTER_ADMIN"),
+  getAgentById
 );
 
 export default router;

@@ -208,30 +208,32 @@ export const createAgent = async (req, res) => {
       }
     }
 
-
+const uploadedPhoto = req.file?.location || null;
     /* =========================
        5️⃣ Insert Agent Assignment
     ========================= */
 
-    await client.query(
-      `
+   await client.query(
+  `
   INSERT INTO election_agents (
     agent_id,
     election_id,
     booth_id,
     ward_id,
-    assigned_at
+    assigned_at,
+    profile_photo
   )
-  VALUES ($1,$2,$3,$4,NOW())
+  VALUES ($1,$2,$3,$4,NOW(),$5)
   `,
-      [
-        userId,
-        electionId,
-        boothId,                         // ✅ ALWAYS booth_id
-        isMunicipal ? ward_id : null
-      ]
-    );
-
+  [
+    userId,
+    electionId,
+    boothId,
+    isMunicipal ? ward_id : null,
+    uploadedPhoto
+  ]
+);
+console.log("Uploaded file:", req.file);
 
     await client.query("COMMIT");
 
