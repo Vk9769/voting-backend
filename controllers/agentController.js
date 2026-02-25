@@ -617,7 +617,19 @@ export const listAgents = async (req, res) => {
 
     const result = await pool.query(query, params);
 
-    res.json(result.rows);
+    const agents = result.rows;
+
+for (let agent of agents) {
+  if (agent.profile_photo && agent.profile_photo.includes(".amazonaws.com/")) {
+    const key = agent.profile_photo
+      .split(".amazonaws.com/")[1]
+      .replace(/^\/+/, "");
+
+    agent.profile_photo = await getSignedImageUrl(key);
+  }
+}
+
+res.json(agents);
 
   } catch (err) {
     console.error("List agents error:", err);
@@ -680,6 +692,17 @@ export const getAgentById = async (req, res) => {
     if (!result.rows.length) {
       return res.status(404).json({ message: "Agent not found" });
     }
+    const agent = result.rows[0];
+
+if (agent.profile_photo && agent.profile_photo.includes(".amazonaws.com/")) {
+  const key = agent.profile_photo
+    .split(".amazonaws.com/")[1]
+    .replace(/^\/+/, "");
+
+  agent.profile_photo = await getSignedImageUrl(key);
+}
+
+res.json(agent);
 
     res.json(result.rows[0]);
 
