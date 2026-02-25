@@ -693,7 +693,6 @@ export const getAgentById = async (req, res) => {
       return res.status(404).json({ message: "Agent not found" });
     }
     const agent = result.rows[0];
-
 if (agent.profile_photo && agent.profile_photo.includes(".amazonaws.com/")) {
   const key = agent.profile_photo
     .split(".amazonaws.com/")[1]
@@ -702,9 +701,7 @@ if (agent.profile_photo && agent.profile_photo.includes(".amazonaws.com/")) {
   agent.profile_photo = await getSignedImageUrl(key);
 }
 
-res.json(agent);
-
-    res.json(result.rows[0]);
+return res.json(agent);
 
   } catch (err) {
     console.error("Get agent by id error:", err);
