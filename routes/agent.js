@@ -16,7 +16,8 @@ import {
   markVoter,
   listAgents,
   getAgentById,
-  getAgentCounts   
+  getAgentCounts,
+  updateAgent    
 } from "../controllers/agentController.js";
 
 const router = express.Router();
@@ -83,6 +84,13 @@ router.get(
   authenticate,
   allowRoles("ADMIN", "SUPER_ADMIN", "MASTER_ADMIN"),
   getAgentCounts
+);
+
+router.put(
+  "/update/:id",
+  authenticate,
+  allowRoles("ADMIN", "SUPER_ADMIN", "MASTER_ADMIN"),
+  updateAgent
 );
 
 router.get(

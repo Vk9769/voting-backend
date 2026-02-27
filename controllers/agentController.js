@@ -654,6 +654,13 @@ export const getAgentById = async (req, res) => {
         ea.profile_photo,
         ea.nomination_status,
         ea.assigned_at,
+        ea.approved_at,
+        ea.rejected_at,
+
+        approver.first_name AS approved_by_name,
+        approver.last_name AS approved_by_last,
+        rejector.first_name AS rejected_by_name,
+        rejector.last_name AS rejected_by_last,
 
         e.election_name,
         e.election_type,
@@ -683,6 +690,8 @@ export const getAgentById = async (req, res) => {
       JOIN elections e ON e.id = ea.election_id
       JOIN booths b ON b.id = ea.booth_id
       LEFT JOIN wards w ON w.id = ea.ward_id
+      LEFT JOIN users approver ON approver.id = ea.approved_by
+      LEFT JOIN users rejector ON rejector.id = ea.rejected_by
 
       WHERE ea.id = $1
       `,
@@ -747,5 +756,95 @@ export const getAgentCounts = async (req, res) => {
   } catch (err) {
     console.error("Agent count error:", err);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+/* =========================
+   UPDATE AGENT (ADMIN)
+========================= */
+export const updateAgent = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const { id } = req.params;
+    const { nomination_status } = req.body;
+
+    if (!nomination_status) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        message: "nomination_status is required",
+      });
+    }
+
+    const agentRes = await client.query(
+      `SELECT nomination_status FROM election_agents WHERE id = $1`,
+      [id]
+    );
+
+    if (!agentRes.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "Agent not found" });
+    }
+
+    const currentStatus = agentRes.rows[0].nomination_status;
+
+    // 🔒 Prevent editing already approved agent
+    if (currentStatus === "approved" && nomination_status !== "approved") {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        message: "Approved agent cannot be modified",
+      });
+    }
+
+    let approved_by = null;
+    let approved_at = null;
+    let rejected_by = null;
+    let rejected_at = null;
+
+    if (nomination_status === "approved") {
+      approved_by = req.user.userId;
+      approved_at = new Date();
+    }
+
+    if (nomination_status === "rejected") {
+      rejected_by = req.user.userId;
+      rejected_at = new Date();
+    }
+
+    await client.query(
+      `
+      UPDATE election_agents
+      SET nomination_status = $1,
+          approved_by = $2,
+          approved_at = $3,
+          rejected_by = $4,
+          rejected_at = $5
+      WHERE id = $6
+      `,
+      [
+        nomination_status,
+        approved_by,
+        approved_at,
+        rejected_by,
+        rejected_at,
+        id
+      ]
+    );
+
+    await client.query("COMMIT");
+
+    res.json({
+      success: true,
+      message: `Agent ${nomination_status} successfully`,
+    });
+
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Update agent error:", err);
+    res.status(500).json({ message: "Server error" });
+  } finally {
+    client.release();
   }
 };
