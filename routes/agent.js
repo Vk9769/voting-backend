@@ -17,7 +17,8 @@ import {
   listAgents,
   getAgentById,
   getAgentCounts,
-  updateAgent    
+  updateAgent,
+  updateAgentFull    
 } from "../controllers/agentController.js";
 
 const router = express.Router();
@@ -91,6 +92,14 @@ router.put(
   authenticate,
   allowRoles("ADMIN", "SUPER_ADMIN", "MASTER_ADMIN"),
   updateAgent
+);
+
+router.put(
+  "/:id",
+  authenticate,
+  allowRoles("ADMIN", "SUPER_ADMIN", "MASTER_ADMIN"),
+  uploadAgentCreatePhoto.single("profilePhoto"),  // for image update
+  updateAgentFull
 );
 
 router.get(

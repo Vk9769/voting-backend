@@ -848,3 +848,114 @@ export const updateAgent = async (req, res) => {
     client.release();
   }
 };
+
+/* =========================
+   FULL UPDATE AGENT (ADMIN)
+========================= */
+export const updateAgentFull = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const { id } = req.params;
+
+    const {
+      firstName,
+      lastName,
+      voterId,
+      phone,
+      email,
+      gender,
+      dob,
+      address,
+      boothId,
+      electionId,
+      idType,
+      idNumber,
+      ward_id
+    } = req.body;
+
+    const dobParsed = parseDOB(dob);
+
+    // 1️⃣ Get existing agent
+    const agentRes = await client.query(
+      `SELECT agent_id FROM election_agents WHERE id = $1`,
+      [id]
+    );
+
+    if (!agentRes.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "Agent not found" });
+    }
+
+    const userId = agentRes.rows[0].agent_id;
+
+    // 2️⃣ Update USERS table
+    await client.query(
+      `
+      UPDATE users
+      SET first_name = $1,
+          last_name = $2,
+          phone = $3,
+          email = $4,
+          gender = $5,
+          date_of_birth = $6,
+          address = $7,
+          gov_id_type = $8,
+          gov_id_no = $9,
+          permanent_booth_id = $10
+      WHERE id = $11
+      `,
+      [
+        firstName,
+        lastName,
+        phone,
+        email,
+        gender,
+        dobParsed,
+        address,
+        idType || "Aadhaar",
+        idNumber,
+        boothId,
+        userId
+      ]
+    );
+
+    // 3️⃣ Handle profile photo if uploaded
+    let profilePhoto = null;
+    if (req.file?.location) {
+      profilePhoto = req.file.location;
+    }
+
+    // 4️⃣ Update election_agents table
+    await client.query(
+      `
+      UPDATE election_agents
+      SET election_id = $1,
+          booth_id = $2,
+          ward_id = $3,
+          profile_photo = COALESCE($4, profile_photo)
+      WHERE id = $5
+      `,
+      [
+        electionId,
+        boothId,
+        ward_id || null,
+        profilePhoto,
+        id
+      ]
+    );
+
+    await client.query("COMMIT");
+
+    res.json({ message: "Agent updated successfully" });
+
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Full update agent error:", err);
+    res.status(500).json({ message: "Server error" });
+  } finally {
+    client.release();
+  }
+};
