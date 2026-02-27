@@ -959,3 +959,72 @@ export const updateAgentFull = async (req, res) => {
     client.release();
   }
 };
+
+/* =========================
+   DELETE AGENT (ADMIN)
+========================= */
+export const deleteAgent = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const { id } = req.params;
+
+    // 1️⃣ Get agent info
+    const agentRes = await client.query(
+      `
+      SELECT agent_id
+      FROM election_agents
+      WHERE id = $1
+      `,
+      [id]
+    );
+
+    if (!agentRes.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "Agent not found" });
+    }
+
+    const userId = agentRes.rows[0].agent_id;
+
+    // 2️⃣ Delete from election_agents
+    await client.query(
+      `DELETE FROM election_agents WHERE id = $1`,
+      [id]
+    );
+
+    // 3️⃣ Get AGENT role id
+    const roleRes = await client.query(
+      `SELECT id FROM roles WHERE name = 'AGENT'`
+    );
+
+    if (roleRes.rows.length) {
+      const agentRoleId = roleRes.rows[0].id;
+
+      // 4️⃣ Remove AGENT role only
+      await client.query(
+        `
+        DELETE FROM user_roles
+        WHERE user_id = $1
+          AND role_id = $2
+        `,
+        [userId, agentRoleId]
+      );
+    }
+
+    await client.query("COMMIT");
+
+    res.json({
+      success: true,
+      message: "Agent removed successfully. Voter role preserved."
+    });
+
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Delete agent error:", err);
+    res.status(500).json({ message: "Server error" });
+  } finally {
+    client.release();
+  }
+};

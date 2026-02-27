@@ -6,7 +6,6 @@ import {
   uploadAgentCreatePhoto
 } from "../middleware/uploadProfilePhoto.js";
 
-
 import {
   createAgent,
   getAgentProfile,
@@ -18,7 +17,8 @@ import {
   getAgentById,
   getAgentCounts,
   updateAgent,
-  updateAgentFull    
+  updateAgentFull,
+  deleteAgent
 } from "../controllers/agentController.js";
 
 const router = express.Router();
@@ -33,10 +33,20 @@ router.post(
   uploadAgentCreatePhoto.single("profilePhoto"),
   createAgent
 );
+
+/* =========================
+   DELETE AGENT (ADMIN)
+========================= */
+router.delete(
+  "/delete/:id",
+  authenticate,
+  allowRoles("ADMIN", "SUPER_ADMIN", "MASTER_ADMIN"),
+  deleteAgent
+);
+
 /* =========================
    AGENT PROFILE
 ========================= */
-
 router.get(
   "/profile",
   authenticate,
@@ -73,6 +83,9 @@ router.post(
   markVoter
 );
 
+/* =========================
+   ADMIN LIST + COUNTS
+========================= */
 router.get(
   "/list",
   authenticate,
@@ -94,11 +107,14 @@ router.put(
   updateAgent
 );
 
+/* =========================
+   FULL UPDATE (ADMIN)
+========================= */
 router.put(
   "/:id",
   authenticate,
   allowRoles("ADMIN", "SUPER_ADMIN", "MASTER_ADMIN"),
-  uploadAgentCreatePhoto.single("profilePhoto"),  // for image update
+  uploadAgentCreatePhoto.single("profilePhoto"),
   updateAgentFull
 );
 
