@@ -12,6 +12,7 @@ import electionBoothRoutes from "./routes/electionBooth.js";
 import boothRoutes from "./routes/booths.js";
 import candidateRoutes from "./routes/candidate.js";   // ✅ NEW
 import commonRoutes from "./routes/common.js";         // ✅ NEW
+import superAdminRoutes from "./routes/superadmin.js";
 
 dotenv.config();
 
@@ -54,7 +55,7 @@ app.use("/agent", agentRoutes);
 app.use("/voter", voterRoutes);
 app.use("/candidate", candidateRoutes); // ✅ NEW
 app.use("/masteradmin", masterAdminRoutes);
-
+app.use("/super-admin", superAdminRoutes);
 // 🔔 Notifications
 app.use("/notifications", notificationRoutes);
 

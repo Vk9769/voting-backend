@@ -1,1 +1,36 @@
-// superadmin routes placeholder
+import express from "express";
+import { authenticate } from "../middleware/auth.js";
+import { allowRoles } from "../middleware/roleCheck.js";
+import { uploadAgentCreatePhoto } from "../middleware/uploadProfilePhoto.js";
+
+import {
+  createSuperAdmin,
+  listSuperAdmins,
+  deleteSuperAdmin
+} from "../controllers/superAdminController.js";
+
+const router = express.Router();
+
+router.post(
+  "/",
+  authenticate,
+  allowRoles("MASTER_ADMIN"),
+  uploadAgentCreatePhoto.single("profilePhoto"),
+  createSuperAdmin
+);
+
+router.get(
+  "/list",
+  authenticate,
+  allowRoles("MASTER_ADMIN"),
+  listSuperAdmins
+);
+
+router.delete(
+  "/delete/:id",
+  authenticate,
+  allowRoles("MASTER_ADMIN"),
+  deleteSuperAdmin
+);
+
+export default router;
