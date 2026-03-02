@@ -9,7 +9,8 @@ import {
   deleteSuperAdmin,
   getSuperAdminCounts,
   getSuperAdminById,
-  updateSuperAdmin
+  updateSuperAdmin,
+  updateSuperAdminFull
 } from "../controllers/superAdminController.js";
 
 const router = express.Router();
