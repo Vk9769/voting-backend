@@ -6,7 +6,8 @@ import { uploadSuperAdminCreatePhoto } from "../middleware/uploadProfilePhoto.js
 import {
   createSuperAdmin,
   listSuperAdmins,
-  deleteSuperAdmin
+  deleteSuperAdmin,
+  getSuperAdminCounts
 } from "../controllers/superAdminController.js";
 
 const router = express.Router();
