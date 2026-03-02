@@ -77,6 +77,19 @@ export const uploadAgentCreatePhoto = multer({
     },
   }),
 });
+
+export const uploadSuperAdminCreatePhoto = multer({
+  storage: multerS3({
+    s3,
+    bucket: BUCKET,
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    key: (req, file, cb) => {
+      const ext = file.originalname.split(".").pop().toLowerCase();
+      cb(null, `profile-photos/super_admin/temp-${Date.now()}.${ext}`);
+    },
+  }),
+});
+
 export const uploadCandidateAssets = multer({
   storage: multerS3({
     s3,

@@ -1,7 +1,7 @@
 import express from "express";
 import { authenticate } from "../middleware/auth.js";
 import { allowRoles } from "../middleware/roleCheck.js";
-import { uploadAgentCreatePhoto } from "../middleware/uploadProfilePhoto.js";
+import { uploadSuperAdminCreatePhoto } from "../middleware/uploadProfilePhoto.js";
 
 import {
   createSuperAdmin,
@@ -15,7 +15,7 @@ router.post(
   "/",
   authenticate,
   allowRoles("MASTER_ADMIN"),
-  uploadAgentCreatePhoto.single("profilePhoto"),
+  uploadSuperAdminCreatePhoto.single("profilePhoto"),
   createSuperAdmin
 );
 
