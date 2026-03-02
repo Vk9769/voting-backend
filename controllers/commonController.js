@@ -65,3 +65,35 @@ export const searchUserByVoterId = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+
+/* ============================================
+   GET STATES BY ELECTION ID
+============================================ */
+export const getElectionStates = async (req, res) => {
+  try {
+    const { election_id } = req.query;
+
+    if (!election_id) {
+      return res.status(400).json({ message: "election_id is required" });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT DISTINCT state
+      FROM election_super_admins
+      WHERE election_id = $1
+      ORDER BY state ASC
+      `,
+      [election_id]
+    );
+
+    const states = result.rows.map(row => row.state);
+
+    res.json(states);
+
+  } catch (err) {
+    console.error("Get election states error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
