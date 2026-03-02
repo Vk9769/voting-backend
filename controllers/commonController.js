@@ -68,7 +68,7 @@ export const searchUserByVoterId = async (req, res) => {
 
 
 /* ============================================
-   GET STATES BY ELECTION ID
+   GET STATE FROM ELECTION TABLE
 ============================================ */
 export const getElectionStates = async (req, res) => {
   try {
@@ -80,20 +80,28 @@ export const getElectionStates = async (req, res) => {
 
     const result = await pool.query(
       `
-      SELECT DISTINCT state
-      FROM election_super_admins
-      WHERE election_id = $1
-      ORDER BY state ASC
+      SELECT state
+      FROM elections
+      WHERE id = $1
       `,
       [election_id]
     );
 
-    const states = result.rows.map(row => row.state);
+    if (!result.rows.length) {
+      return res.status(404).json({ message: "Election not found" });
+    }
 
-    res.json(states);
+    const state = result.rows[0].state;
+
+    if (!state) {
+      return res.json([]);
+    }
+
+    // Return as array for Flutter compatibility
+    res.json([state]);
 
   } catch (err) {
-    console.error("Get election states error:", err);
+    console.error("Get election state error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
