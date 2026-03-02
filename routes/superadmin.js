@@ -57,4 +57,12 @@ router.put(
   updateSuperAdmin
 );
 
+router.put(
+  "/update-full/:id",
+  authenticate,
+  allowRoles("MASTER_ADMIN"),
+  upload.single("profilePhoto"),
+  updateSuperAdminFull
+);
+
 export default router;

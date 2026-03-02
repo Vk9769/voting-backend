@@ -507,3 +507,118 @@ export const updateSuperAdmin = async (req, res) => {
     client.release();
   }
 };
+
+export const updateSuperAdminFull = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const { id } = req.params;
+
+    const {
+      firstName,
+      lastName,
+      voterId,
+      phone,
+      email,
+      gender,
+      dob,
+      address,
+      electionId,
+      state,
+      idType,
+      idNumber
+    } = req.body;
+
+    const dobParsed = parseDOB(dob);
+
+    /* =========================
+       1️⃣ Get existing super admin
+    ========================= */
+    const adminRes = await client.query(
+      `SELECT super_admin_id FROM election_super_admins WHERE id = $1`,
+      [id]
+    );
+
+    if (!adminRes.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "Super Admin not found" });
+    }
+
+    const userId = adminRes.rows[0].super_admin_id;
+
+    /* =========================
+       2️⃣ Update USERS table
+    ========================= */
+    await client.query(
+      `
+      UPDATE users
+      SET first_name = $1,
+          last_name = $2,
+          phone = $3,
+          email = $4,
+          gender = $5,
+          date_of_birth = $6,
+          address = $7,
+          gov_id_type = $8,
+          gov_id_no = $9
+      WHERE id = $10
+      `,
+      [
+        firstName,
+        lastName,
+        phone,
+        email,
+        gender,
+        dobParsed,
+        address,
+        idType || "Aadhaar",
+        idNumber,
+        userId
+      ]
+    );
+
+    /* =========================
+       3️⃣ Handle Profile Photo
+    ========================= */
+    let profilePhoto = null;
+
+    if (req.file?.location) {
+      profilePhoto = req.file.location;
+    }
+
+    /* =========================
+       4️⃣ Update election_super_admins
+    ========================= */
+    await client.query(
+      `
+      UPDATE election_super_admins
+      SET election_id = $1,
+          state = $2,
+          profile_photo = COALESCE($3, profile_photo)
+      WHERE id = $4
+      `,
+      [
+        electionId,
+        state,
+        profilePhoto,
+        id
+      ]
+    );
+
+    await client.query("COMMIT");
+
+    res.json({
+      success: true,
+      message: "Super Admin updated successfully"
+    });
+
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Full update Super Admin error:", err);
+    res.status(500).json({ message: "Server error" });
+  } finally {
+    client.release();
+  }
+};
