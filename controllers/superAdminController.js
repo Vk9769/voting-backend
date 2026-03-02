@@ -324,3 +324,32 @@ export const deleteSuperAdmin = async (req, res) => {
   }
 };
 
+
+export const getSuperAdminCounts = async (req, res) => {
+  try {
+    const { election_id, state } = req.query;
+
+    if (!election_id || !state) {
+      return res.status(400).json({ message: "Missing parameters" });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT
+        COUNT(*) AS total,
+        COUNT(*) FILTER (WHERE nomination_status = 'approved') AS approved,
+        COUNT(*) FILTER (WHERE nomination_status = 'pending') AS pending,
+        COUNT(*) FILTER (WHERE nomination_status = 'rejected') AS rejected
+      FROM election_super_admins
+      WHERE election_id = $1 AND state = $2
+      `,
+      [election_id, state]
+    );
+
+    res.json(result.rows[0]);
+
+  } catch (err) {
+    console.error("Count error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

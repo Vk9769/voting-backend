@@ -33,4 +33,11 @@ router.delete(
   deleteSuperAdmin
 );
 
+router.get(
+  "/counts",
+  authenticate,
+  allowRoles("MASTER_ADMIN"),
+  getSuperAdminCounts
+);
+
 export default router;
