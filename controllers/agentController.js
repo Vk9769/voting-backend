@@ -568,6 +568,7 @@ export const listAgents = async (req, res) => {
         ea.booth_id,
         ea.ward_id,
         ea.profile_photo,
+        ea.nomination_status,
 
         u.first_name,
         u.last_name,
