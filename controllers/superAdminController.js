@@ -456,15 +456,6 @@ export const updateSuperAdmin = async (req, res) => {
       return res.status(404).json({ message: "Super Admin not found" });
     }
 
-    const currentStatus = adminRes.rows[0].nomination_status;
-
-    // 🔒 Prevent editing approved → change back
-    if (currentStatus === "approved" && nomination_status !== "approved") {
-      await client.query("ROLLBACK");
-      return res.status(400).json({
-        message: "Approved Super Admin cannot be modified",
-      });
-    }
 
     let approved_by = null;
     let approved_at = null;
