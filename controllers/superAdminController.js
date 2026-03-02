@@ -354,3 +354,165 @@ export const getSuperAdminCounts = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+/* =========================
+   GET SUPER ADMIN BY ID (ADMIN)
+========================= */
+export const getSuperAdminById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      `
+      SELECT
+        esa.id,
+        esa.election_id,
+        esa.state,
+        esa.profile_photo,
+        esa.nomination_status,
+        esa.assigned_at,
+        esa.approved_at,
+        esa.rejected_at,
+
+        approver.first_name AS approved_by_name,
+        approver.last_name AS approved_by_last,
+        rejector.first_name AS rejected_by_name,
+        rejector.last_name AS rejected_by_last,
+
+        e.election_name,
+
+        u.id AS user_id,
+        u.voter_id,
+        u.first_name,
+        u.last_name,
+        u.phone,
+        u.email,
+        u.gender,
+        u.date_of_birth,
+        u.address,
+        u.gov_id_no,
+        u.gov_id_type
+
+      FROM election_super_admins esa
+      JOIN users u ON u.id = esa.super_admin_id
+      JOIN elections e ON e.id = esa.election_id
+      LEFT JOIN users approver ON approver.id = esa.approved_by
+      LEFT JOIN users rejector ON rejector.id = esa.rejected_by
+
+      WHERE esa.id = $1
+      `,
+      [id]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({ message: "Super Admin not found" });
+    }
+
+    const admin = result.rows[0];
+
+    // ✅ SAFE S3 SIGNING
+    if (admin.profile_photo && admin.profile_photo.includes(".amazonaws.com/")) {
+      const key = admin.profile_photo
+        .split(".amazonaws.com/")[1]
+        .replace(/^\/+/, "");
+
+      admin.profile_photo = await getSignedImageUrl(key);
+    }
+
+    res.json(admin);
+
+  } catch (err) {
+    console.error("Get Super Admin error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/* =========================
+   UPDATE SUPER ADMIN (ADMIN)
+========================= */
+export const updateSuperAdmin = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const { id } = req.params;
+    const { nomination_status } = req.body;
+
+    if (!nomination_status) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        message: "nomination_status is required",
+      });
+    }
+
+    const adminRes = await client.query(
+      `SELECT nomination_status FROM election_super_admins WHERE id = $1`,
+      [id]
+    );
+
+    if (!adminRes.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "Super Admin not found" });
+    }
+
+    const currentStatus = adminRes.rows[0].nomination_status;
+
+    // 🔒 Prevent editing approved → change back
+    if (currentStatus === "approved" && nomination_status !== "approved") {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        message: "Approved Super Admin cannot be modified",
+      });
+    }
+
+    let approved_by = null;
+    let approved_at = null;
+    let rejected_by = null;
+    let rejected_at = null;
+
+    if (nomination_status === "approved") {
+      approved_by = req.user.userId;
+      approved_at = new Date();
+    }
+
+    if (nomination_status === "rejected") {
+      rejected_by = req.user.userId;
+      rejected_at = new Date();
+    }
+
+    await client.query(
+      `
+      UPDATE election_super_admins
+      SET nomination_status = $1,
+          approved_by = $2,
+          approved_at = $3,
+          rejected_by = $4,
+          rejected_at = $5
+      WHERE id = $6
+      `,
+      [
+        nomination_status,
+        approved_by,
+        approved_at,
+        rejected_by,
+        rejected_at,
+        id
+      ]
+    );
+
+    await client.query("COMMIT");
+
+    res.json({
+      success: true,
+      message: `Super Admin ${nomination_status} successfully`,
+    });
+
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Update Super Admin error:", err);
+    res.status(500).json({ message: "Server error" });
+  } finally {
+    client.release();
+  }
+};

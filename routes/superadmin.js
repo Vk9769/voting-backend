@@ -7,7 +7,9 @@ import {
   createSuperAdmin,
   listSuperAdmins,
   deleteSuperAdmin,
-  getSuperAdminCounts
+  getSuperAdminCounts,
+  getSuperAdminById,
+  updateSuperAdmin
 } from "../controllers/superAdminController.js";
 
 const router = express.Router();
@@ -39,6 +41,18 @@ router.get(
   authenticate,
   allowRoles("MASTER_ADMIN"),
   getSuperAdminCounts
+);
+
+router.get(
+    "/super-admin/:id", 
+    authenticate, 
+    getSuperAdminById
+);
+
+router.put(
+    "/super-admin/update/:id", 
+    authenticate, 
+    updateSuperAdmin
 );
 
 export default router;
