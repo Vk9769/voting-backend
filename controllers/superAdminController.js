@@ -224,6 +224,7 @@ export const listSuperAdmins = async (req, res) => {
         esa.id,
         esa.election_id,
         esa.state,
+        esa.nomination_status,
         esa.assigned_at,
         esa.profile_photo,
 
