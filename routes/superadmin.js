@@ -44,15 +44,17 @@ router.get(
 );
 
 router.get(
-    "/super-admin/:id", 
-    authenticate, 
-    getSuperAdminById
+  "/:id",
+  authenticate,
+  allowRoles("MASTER_ADMIN"),
+  getSuperAdminById
 );
 
 router.put(
-    "/super-admin/update/:id", 
-    authenticate, 
-    updateSuperAdmin
+  "/update/:id",
+  authenticate,
+  allowRoles("MASTER_ADMIN"),
+  updateSuperAdmin
 );
 
 export default router;
