@@ -279,9 +279,26 @@ export const listAdmins = async (req, res) => {
 
     const result = await pool.query(query, params);
 
-    res.json(result.rows);
+    const admins = result.rows;
+
+    /* ✅ SIGN S3 IMAGE URL */
+    for (let admin of admins) {
+
+      if (admin.profile_photo && admin.profile_photo.includes(".amazonaws.com/")) {
+
+        const key = admin.profile_photo
+          .split(".amazonaws.com/")[1]
+          .replace(/^\/+/, "");
+
+        admin.profile_photo = await getSignedImageUrl(key);
+      }
+
+    }
+
+    res.json(admins);
 
   } catch (err) {
+    console.error("List Admin error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -408,7 +425,18 @@ export const getAdminById = async (req, res) => {
       return res.status(404).json({ message: "Admin not found" });
     }
 
-    res.json(result.rows[0]);
+   const admin = result.rows[0];
+
+if (admin.profile_photo && admin.profile_photo.includes(".amazonaws.com/")) {
+
+  const key = admin.profile_photo
+    .split(".amazonaws.com/")[1]
+    .replace(/^\/+/, "");
+
+  admin.profile_photo = await getSignedImageUrl(key);
+}
+
+res.json(admin);
 
   } catch (err) {
     res.status(500).json({ message: "Server error" });
