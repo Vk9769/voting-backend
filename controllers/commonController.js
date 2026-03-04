@@ -80,9 +80,11 @@ export const getElectionStates = async (req, res) => {
 
     const result = await pool.query(
       `
-      SELECT state
-      FROM elections
-      WHERE id = $1
+      SELECT DISTINCT b.state
+      FROM election_booths eb
+      JOIN booths b ON b.id = eb.booth_id
+      WHERE eb.election_id = $1
+      ORDER BY b.state
       `,
       [election_id]
     );
@@ -121,11 +123,12 @@ export const getElectionDistricts = async (req, res) => {
 
     const result = await pool.query(
       `
-      SELECT DISTINCT district
-      FROM booths
-      WHERE election_id = $1
-      AND state = $2
-      ORDER BY district
+      SELECT DISTINCT b.district
+      FROM election_booths eb
+      JOIN booths b ON b.id = eb.booth_id
+      WHERE eb.election_id = $1
+      AND b.state = $2
+      ORDER BY b.district
       `,
       [election_id, state]
     );
