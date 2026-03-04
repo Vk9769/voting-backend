@@ -10,7 +10,8 @@ import {
   deleteAdmin,
   getAdminCounts,
   getAdminById,
-  updateAdmin
+  updateAdmin,
+  updateAdminFull
 } from "../controllers/adminController.js";
 
 const router = express.Router();
@@ -56,6 +57,13 @@ router.put(
   authenticate,
   allowRoles("MASTER_ADMIN"),
   updateAdmin
+);
+
+router.put(
+  "/update-full/:id",
+  authenticate,
+  uploadAdminCreatePhoto.single("profilePhoto"),
+  updateAdminFull
 );
 
 export default router;

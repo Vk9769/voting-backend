@@ -397,7 +397,6 @@ export const deleteAdmin = async (req, res) => {
  GET ADMIN BY ID
   ********************/
 export const getAdminById = async (req, res) => {
-
   try {
 
     const { id } = req.params;
@@ -405,18 +404,42 @@ export const getAdminById = async (req, res) => {
     const result = await pool.query(
       `
       SELECT
-        ea.*,
+        ea.id,
+        ea.election_id,
+        ea.state,
+        ea.district,
+        ea.profile_photo,
+        ea.nomination_status,
+        ea.assigned_at,
+        ea.approved_at,
+        ea.rejected_at,
+
+        approver.first_name AS approved_by_name,
+        approver.last_name AS approved_by_last,
+
+        rejector.first_name AS rejected_by_name,
+        rejector.last_name AS rejected_by_last,
+
+        e.election_name,
+
+        u.voter_id,
         u.first_name,
         u.last_name,
         u.phone,
         u.email,
         u.gender,
+        u.date_of_birth,
         u.address,
-        u.voter_id,
-        u.date_of_birth
+        u.gov_id_no,
+        u.gov_id_type
+
       FROM election_admins ea
       JOIN users u ON u.id = ea.admin_id
-      WHERE ea.id=$1
+      JOIN elections e ON e.id = ea.election_id
+      LEFT JOIN users approver ON approver.id = ea.approved_by
+      LEFT JOIN users rejector ON rejector.id = ea.rejected_by
+
+      WHERE ea.id = $1
       `,
       [id]
     );
@@ -425,23 +448,23 @@ export const getAdminById = async (req, res) => {
       return res.status(404).json({ message: "Admin not found" });
     }
 
-   const admin = result.rows[0];
+    const admin = result.rows[0];
 
-if (admin.profile_photo && admin.profile_photo.includes(".amazonaws.com/")) {
+    /* SIGN S3 IMAGE */
+    if (admin.profile_photo && admin.profile_photo.includes(".amazonaws.com/")) {
+      const key = admin.profile_photo
+        .split(".amazonaws.com/")[1]
+        .replace(/^\/+/, "");
 
-  const key = admin.profile_photo
-    .split(".amazonaws.com/")[1]
-    .replace(/^\/+/, "");
+      admin.profile_photo = await getSignedImageUrl(key);
+    }
 
-  admin.profile_photo = await getSignedImageUrl(key);
-}
-
-res.json(admin);
+    res.json(admin);
 
   } catch (err) {
+    console.error("Get Admin error:", err);
     res.status(500).json({ message: "Server error" });
   }
-
 };
 
 /********************
@@ -458,27 +481,187 @@ export const updateAdmin = async (req, res) => {
     const { id } = req.params;
     const { nomination_status } = req.body;
 
+    let approved_by = null;
+    let approved_at = null;
+    let rejected_by = null;
+    let rejected_at = null;
+
+    if (nomination_status === "approved") {
+      approved_by = req.user.userId;
+      approved_at = new Date();
+    }
+
+    if (nomination_status === "rejected") {
+      rejected_by = req.user.userId;
+      rejected_at = new Date();
+    }
+
     await client.query(
       `
       UPDATE election_admins
-      SET nomination_status=$1
-      WHERE id=$2
+      SET nomination_status = $1,
+          approved_by = $2,
+          approved_at = $3,
+          rejected_by = $4,
+          rejected_at = $5
+      WHERE id = $6
       `,
-      [nomination_status, id]
+      [
+        nomination_status,
+        approved_by,
+        approved_at,
+        rejected_by,
+        rejected_at,
+        id
+      ]
     );
 
     await client.query("COMMIT");
 
     res.json({
       success: true,
-      message: "Admin updated successfully"
+      message: `Admin ${nomination_status} successfully`
     });
 
   } catch (err) {
 
     await client.query("ROLLBACK");
 
+    console.error("Update Admin error:", err);
+
     res.status(500).json({ message: "Server error" });
+
+  } finally {
+    client.release();
+  }
+
+};
+
+/* =========================
+   UPDATE DISTRICT ADMIN FULL
+========================= */
+export const updateAdminFull = async (req, res) => {
+
+  const client = await pool.connect();
+
+  try {
+
+    await client.query("BEGIN");
+
+    const { id } = req.params;
+
+    const {
+      firstName,
+      lastName,
+      voterId,
+      phone,
+      email,
+      gender,
+      dob,
+      address,
+      electionId,
+      state,
+      district,
+      idType,
+      idNumber
+    } = req.body;
+
+    const dobParsed = parseDOB(dob);
+
+    /* =========================
+       1️⃣ GET EXISTING ADMIN
+    ========================= */
+    const adminRes = await client.query(
+      `SELECT admin_id FROM election_admins WHERE id=$1`,
+      [id]
+    );
+
+    if (!adminRes.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "Admin not found" });
+    }
+
+    const userId = adminRes.rows[0].admin_id;
+
+    /* =========================
+       2️⃣ UPDATE USERS TABLE
+    ========================= */
+    await client.query(
+      `
+      UPDATE users
+      SET first_name=$1,
+          last_name=$2,
+          phone=$3,
+          email=$4,
+          gender=$5,
+          date_of_birth=$6,
+          address=$7,
+          gov_id_type=$8,
+          gov_id_no=$9
+      WHERE id=$10
+      `,
+      [
+        firstName,
+        lastName,
+        phone,
+        email,
+        gender,
+        dobParsed,
+        address,
+        idType || "Aadhaar",
+        idNumber,
+        userId
+      ]
+    );
+
+    /* =========================
+       3️⃣ PROFILE PHOTO
+    ========================= */
+
+    let profilePhoto = null;
+
+    if (req.file?.location) {
+      profilePhoto = req.file.location;
+    }
+
+    /* =========================
+       4️⃣ UPDATE ADMIN ASSIGNMENT
+    ========================= */
+
+    await client.query(
+      `
+      UPDATE election_admins
+      SET election_id=$1,
+          state=$2,
+          district=$3,
+          profile_photo = COALESCE($4, profile_photo)
+      WHERE id=$5
+      `,
+      [
+        electionId,
+        state,
+        district,
+        profilePhoto,
+        id
+      ]
+    );
+
+    await client.query("COMMIT");
+
+    res.json({
+      success: true,
+      message: "District Admin updated successfully"
+    });
+
+  } catch (err) {
+
+    await client.query("ROLLBACK");
+
+    console.error("Update District Admin error:", err);
+
+    res.status(500).json({
+      message: "Server error"
+    });
 
   } finally {
     client.release();
