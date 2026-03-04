@@ -90,6 +90,38 @@ export const uploadSuperAdminCreatePhoto = multer({
   }),
 });
 
+export const uploadAdminCreatePhoto = multer({
+  storage: multerS3({
+    s3,
+    bucket: BUCKET,
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+
+    key: (req, file, cb) => {
+      const ext = file.originalname.split(".").pop().toLowerCase();
+
+      cb(
+        null,
+        `profile-photos/admin/temp-${Date.now()}.${ext}`
+      );
+    },
+  }),
+
+  limits: {
+    fileSize: 2 * 1024 * 1024,
+  },
+
+  fileFilter: (req, file, cb) => {
+    if (
+      file.mimetype.startsWith("image/") ||
+      file.originalname.match(/\.(jpg|jpeg|png|webp)$/i)
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files allowed"));
+    }
+  },
+});
+
 export const uploadCandidateAssets = multer({
   storage: multerS3({
     s3,
