@@ -2,7 +2,8 @@ import express from "express";
 import {
   getElectionType,
   searchUserByVoterId,
-   getElectionStates
+  getElectionStates,
+  getElectionDistricts
 } from "../controllers/commonController.js";
 
 const router = express.Router();
@@ -14,4 +15,6 @@ const router = express.Router();
 router.get("/election-type", getElectionType);
 router.get("/search-user", searchUserByVoterId);
 router.get("/election-states", getElectionStates);
+router.get("/election-districts", getElectionDistricts);
+
 export default router;

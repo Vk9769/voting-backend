@@ -105,3 +105,37 @@ export const getElectionStates = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+/* ============================================
+   GET DISTRICTS BY STATE + ELECTION
+============================================ */
+export const getElectionDistricts = async (req, res) => {
+  try {
+    const { election_id, state } = req.query;
+
+    if (!election_id || !state) {
+      return res
+        .status(400)
+        .json({ message: "election_id and state are required" });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT DISTINCT district
+      FROM booths
+      WHERE election_id = $1
+      AND state = $2
+      ORDER BY district
+      `,
+      [election_id, state]
+    );
+
+    const districts = result.rows.map((row) => row.district);
+
+    res.json(districts);
+
+  } catch (err) {
+    console.error("Get election districts error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
